@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "BDFR Facial Animation",
+  "Description": "BDFR facial curve runtime, retargeting and live facial-performance integration.",
+  "Category": "Animation",
+  "CreatedBy": "BDFR",
+  "CanContainContent": true,
+  "IsBetaVersion": true,
+  "Modules": [
+    {
+      "Name": "BDFRFacialAnimation",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
