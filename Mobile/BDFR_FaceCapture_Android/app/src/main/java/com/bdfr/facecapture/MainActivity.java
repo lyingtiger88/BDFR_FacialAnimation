@@ -19,6 +19,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 public final class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
 
+    private final ActivityResultLauncher<String[]> videoPicker =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) {
+                    binding.statusText.setText("Video selected: " + uri);
+                    // Offline tracker/solver will consume this URI in the next implementation slice.
+                }
+            });
+
     private final ActivityResultLauncher<String> cameraPermission =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
                 if (granted) {
@@ -40,6 +48,8 @@ public final class MainActivity extends AppCompatActivity {
                 binding.statusText.setText("Live transport scaffold ready."));
         binding.calibrateButton.setOnClickListener(v ->
                 binding.statusText.setText("Calibration workflow scaffold ready."));
+        binding.importButton.setOnClickListener(v ->
+                videoPicker.launch(new String[] {"video/*"}));
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
