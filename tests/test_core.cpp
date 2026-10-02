@@ -28,6 +28,7 @@
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/mocap/MocapCsv.h"
+#include "bdfr/models/ModelRegistry.h"
 #include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
@@ -1387,6 +1388,45 @@ int main() {
     expect(bdfr::FrameRate::Ntsc2997().framesPerSecond() > 29.96 &&
            bdfr::FrameRate::Ntsc2997().framesPerSecond() < 29.98,
            "29.97 rational frame rate is represented exactly");
+
+
+
+    bdfr::models::ModelRegistry modelRegistry;
+
+    bdfr::models::ModelManifest modelV1;
+    modelV1.id = "face-landmarker";
+    modelV1.version = "1.0.0";
+    modelV1.fileName = "face_landmarker.task";
+    modelV1.sha256 = "example-sha256";
+    modelV1.license = "external-license";
+    modelV1.source = "external";
+    modelV1.backend =
+        bdfr::models::RuntimeBackend::MediaPipe;
+    modelV1.inputContract = "RGB image";
+    modelV1.outputContract = "52 curves + landmarks";
+
+    expect(modelRegistry.registerModel(modelV1),
+           "model registry accepts complete model manifest");
+
+    expect(!modelRegistry.registerModel(modelV1),
+           "model registry rejects duplicate id/version");
+
+    bdfr::models::ModelManifest modelV2 = modelV1;
+    modelV2.version = "2.0.0";
+    modelV2.fileName = "face_landmarker_v2.task";
+
+    expect(modelRegistry.registerModel(modelV2),
+           "model registry stores multiple versions");
+
+    const auto* latestModel =
+        modelRegistry.find("face-landmarker");
+
+    expect(latestModel != nullptr &&
+           latestModel->version == "2.0.0",
+           "model registry resolves latest registered version");
+
+    expect(modelRegistry.all().size() == 2,
+           "model registry enumerates registered versions");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
