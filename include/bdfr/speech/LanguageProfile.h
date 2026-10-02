@@ -28,6 +28,7 @@ public:
         Viseme fallback = Viseme::Rest) const;
 
     static LanguageProfile englishBootstrap();
+    static LanguageProfile persianBootstrap();
 
 private:
     std::unordered_map<std::string, LanguageVisemeRule> rules_;
