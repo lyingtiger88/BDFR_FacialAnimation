@@ -21,6 +21,7 @@ add_library(bdfr_core
     src/CurveCatalog.cpp
     src/CurveTools.cpp
     src/Diagnostics.cpp
+    src/Persistence.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
