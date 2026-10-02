@@ -49,6 +49,7 @@ add_library(bdfr_core
     src/SequenceDiagnostics.cpp
     src/SequenceCleanup.cpp
     src/FramePacketCodec.cpp
+    src/SessionStream.cpp
     src/UdpTransport.cpp
 )
 
