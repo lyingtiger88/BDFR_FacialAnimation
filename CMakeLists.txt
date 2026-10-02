@@ -26,6 +26,8 @@ add_library(bdfr_core
     src/AutoMapper.cpp
     src/Arkit52.cpp
     src/TextSpeech.cpp
+    src/WavAudio.cpp
+    src/AudioFeatures.cpp
     src/DialogueMarkup.cpp
     src/DialogueCompiler.cpp
     src/LiveRuntime.cpp
