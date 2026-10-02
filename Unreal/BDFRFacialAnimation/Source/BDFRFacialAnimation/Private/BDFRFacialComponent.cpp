@@ -1,5 +1,8 @@
 #include "BDFRFacialComponent.h"
 
+#include "BDFRRetargetProfileAsset.h"
+#include "Components/SkeletalMeshComponent.h"
+
 UBDFRFacialComponent::UBDFRFacialComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
@@ -36,4 +39,38 @@ float UBDFRFacialComponent::GetCurveValue(FName CurveName) const
 void UBDFRFacialComponent::ClearCurves()
 {
     CurrentCurves.Reset();
+}
+
+void UBDFRFacialComponent::ApplyToSkeletalMesh(USkeletalMeshComponent* SkeletalMesh)
+{
+    if (!IsValid(SkeletalMesh))
+    {
+        return;
+    }
+
+    if (!IsValid(RetargetProfile))
+    {
+        for (const TPair<FName, float>& Pair : CurrentCurves)
+        {
+            SkeletalMesh->SetMorphTarget(Pair.Key, Pair.Value, false);
+        }
+        return;
+    }
+
+    for (const FBDFRRetargetMapping& Mapping : RetargetProfile->Mappings)
+    {
+        if (Mapping.SourceCurve.IsNone() || Mapping.TargetMorph.IsNone())
+        {
+            continue;
+        }
+
+        const float SourceValue = GetCurveValue(Mapping.SourceCurve);
+        const float TargetValue =
+            RetargetProfile->EvaluateMapping(Mapping, SourceValue);
+
+        SkeletalMesh->SetMorphTarget(
+            Mapping.TargetMorph,
+            TargetValue,
+            false);
+    }
 }
