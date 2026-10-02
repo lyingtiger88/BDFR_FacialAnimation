@@ -11,6 +11,7 @@
 #include "bdfr/core/KeyReducer.h"
 #include "bdfr/core/History.h"
 #include "bdfr/core/Project.h"
+#include "bdfr/core/Persistence.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -18,6 +19,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <filesystem>
 #include <string>
 
 namespace {
@@ -452,6 +454,23 @@ int main() {
             });
     }
     expect(timerCalled, "scoped timer reports duration on destruction");
+
+
+
+    const auto persistencePath =
+        std::filesystem::temp_directory_path() / "bdfr_core_persistence_test.bdfr.json";
+    std::filesystem::remove(persistencePath);
+    expect(bdfr::Persistence::saveProject(persistencePath, persistedProject, &error),
+           "project saves atomically to disk: " + error);
+    bdfr::Project diskProject;
+    expect(bdfr::Persistence::loadProject(persistencePath, diskProject, &error),
+           "project loads from disk: " + error);
+    expect(diskProject.name == persistedProject.name, "disk project preserves name");
+    expect(diskProject.actors.size() == 1 && diskProject.sessions.size() == 1,
+           "disk project preserves hierarchy");
+    expect(!std::filesystem::exists(persistencePath.string() + ".tmp"),
+           "atomic save leaves no temporary file");
+    std::filesystem::remove(persistencePath);
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
