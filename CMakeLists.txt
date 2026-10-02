@@ -25,6 +25,7 @@ add_library(bdfr_core
     src/Retargeter.cpp
     src/AutoMapper.cpp
     src/TextSpeech.cpp
+    src/LiveRuntime.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
