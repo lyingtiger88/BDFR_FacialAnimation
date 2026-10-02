@@ -55,6 +55,7 @@ add_library(bdfr_core
     src/SequenceFilter.cpp
     src/SequenceDiagnostics.cpp
     src/SequenceCleanup.cpp
+    src/SequenceCompare.cpp
     src/FramePacketCodec.cpp
     src/SessionStream.cpp
     src/UdpTransport.cpp
@@ -93,3 +94,8 @@ add_test(NAME bdfr_offline_pipeline_tests COMMAND bdfr_offline_pipeline_tests)
 add_executable(bdfr_quality_tests tests/test_quality.cpp)
 target_link_libraries(bdfr_quality_tests PRIVATE bdfr_core)
 add_test(NAME bdfr_quality_tests COMMAND bdfr_quality_tests)
+
+
+add_executable(bdfr_sequence_compare_tests tests/test_sequence_compare.cpp)
+target_link_libraries(bdfr_sequence_compare_tests PRIVATE bdfr_core)
+add_test(NAME bdfr_sequence_compare_tests COMMAND bdfr_sequence_compare_tests)
