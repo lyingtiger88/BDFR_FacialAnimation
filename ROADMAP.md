@@ -20,6 +20,10 @@ This roadmap tracks implementation status, not just planned scope.
 - [x] Temporal exponential smoothing
 - [x] Binary facial-frame codec
 - [x] Initial multi-track timeline data model
+- [x] Timeline curve evaluator with Mute/Solo/Priority
+- [x] Region-aware curve fusion
+- [x] Session/Take model
+- [x] Partial re-solve dirty-range model
 - [x] Initial automated core tests
 - [x] GitHub Actions CI for Windows and Ubuntu
 - [~] M0 Foundation
@@ -74,7 +78,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Define logging standard
 - [ ] Define profiling standard
 - [ ] Define benchmark asset conventions
-- [ ] Define session/take metadata conventions
+- [x] Define initial session/take metadata conventions
 - [ ] Define project-file/version migration policy
 
 ## Deliverables
@@ -89,7 +93,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Testing documentation
 - [ ] JSON serialization/interchange
 - [ ] Sample facial-sequence files
-- [ ] Session/Take data model
+- [x] Session/Take data model
 - [ ] Project persistence format
 - [ ] Undo/Redo transaction model
 - [ ] Crash recovery/autosave design
@@ -117,15 +121,15 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Basic blending/layering
 - [x] Left/right curve support in registry
 - [ ] Full FACS registry and metadata
-- [ ] Region masks
-- [ ] Layer priority
+- [x] Region masks
+- [x] Layer priority
 - [ ] Additive/override policy per region
 - [ ] Curve constraints
 - [ ] Velocity/acceleration constraints
 - [ ] Pose-space correctives
 - [ ] Facial dynamics model
 - [ ] Region freeze
-- [ ] Partial re-solve primitives
+- [x] Partial re-solve primitives
 
 ## Deliverables
 
@@ -135,8 +139,8 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Binary facial-frame codec
 - [x] Initial timeline types
 - [ ] Expression layer stack
-- [ ] Region mask system
-- [ ] Priority resolver
+- [x] Region mask system
+- [x] Priority resolver
 - [ ] Corrective-rule engine
 - [ ] Advanced temporal interpolation
 - [ ] JSON interchange
@@ -156,25 +160,25 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Manual Override track type
 - [x] Clip start/duration/weight
 - [x] Track lock primitive
-- [ ] Timeline evaluator
-- [ ] Mute behavior
-- [ ] Solo behavior
-- [ ] Track priority
-- [ ] Track masks
-- [ ] Clip blending
+- [x] Timeline evaluator
+- [x] Mute behavior
+- [x] Solo behavior
+- [x] Track priority
+- [x] Track masks
+- [x] Basic clip blending
 - [ ] Non-destructive editing
 - [ ] Curve editor
 - [ ] Snapping
 - [ ] Bezier/tangent editing
 - [ ] Key reduction
 - [ ] Quality/confidence heatmap
-- [ ] Partial range re-solve
+- [x] Partial range re-solve primitives
 
 ## Exit criteria
 
 - [x] Multiple curve layers can be mixed without invalid normalized values
 - [ ] Full expression layers can be evaluated over time
-- [ ] Region-specific source fusion works
+- [x] Region-specific source fusion primitives work
 - [ ] Deterministic playback is verified across stored sequences
 - [ ] Corrective rules can resolve problematic expression combinations
 
@@ -549,6 +553,12 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Mixer tests
 - [x] Smoothing test
 - [x] Timeline construction/validation tests
+- [x] Timeline evaluator tests
+- [x] Mute/Solo behavior tests
+- [x] Region-mask tests
+- [x] Layer-priority tests
+- [x] Session/Take tests
+- [x] Partial re-solve range tests
 
 ## Remaining quality systems
 
@@ -657,8 +667,8 @@ These features span multiple milestones.
 
 - [ ] Project manager
 - [ ] Actor profiles
-- [ ] Session manager
-- [ ] Take manager
+- [~] Session model / manager foundation
+- [~] Take model / manager foundation
 - [ ] Scene/Shot metadata
 - [ ] Multi-take comparison
 - [ ] Facial slate
@@ -672,7 +682,7 @@ These features span multiple milestones.
 - [ ] Professional curve editor
 - [ ] Undo/Redo
 - [ ] Non-destructive layers
-- [ ] Partial re-solve
+- [x] Partial re-solve core ranges
 - [ ] Region freeze
 - [ ] Smart cleanup
 - [ ] Key reduction
