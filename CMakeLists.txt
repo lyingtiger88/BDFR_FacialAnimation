@@ -104,3 +104,7 @@ add_test(NAME bdfr_sequence_compare_tests COMMAND bdfr_sequence_compare_tests)
 add_executable(bdfr_initial_smoke_tests tests/test_initial_smoke.cpp)
 target_link_libraries(bdfr_initial_smoke_tests PRIVATE bdfr_core)
 add_test(NAME bdfr_initial_smoke_tests COMMAND bdfr_initial_smoke_tests)
+
+
+add_executable(bdfr_live_receiver tools/bdfr_live_receiver.cpp)
+target_link_libraries(bdfr_live_receiver PRIVATE bdfr_core)
