@@ -42,6 +42,7 @@ add_library(bdfr_core
     src/EmotionEngine.cpp
     src/PerformanceFusion.cpp
     src/Calibration.cpp
+    src/NeutralDrift.cpp
     src/CurveTuning.cpp
     src/BehaviorEngine.cpp
     src/Personality.cpp
