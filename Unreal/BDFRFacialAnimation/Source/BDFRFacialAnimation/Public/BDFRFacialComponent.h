@@ -4,6 +4,9 @@
 #include "Components/ActorComponent.h"
 #include "BDFRFacialComponent.generated.h"
 
+class UBDFRRetargetProfileAsset;
+class USkeletalMeshComponent;
+
 UCLASS(ClassGroup=(BDFR), meta=(BlueprintSpawnableComponent))
 class BDFRFACIALANIMATION_API UBDFRFacialComponent : public UActorComponent
 {
@@ -24,11 +27,17 @@ public:
     UFUNCTION(BlueprintCallable, Category="BDFR|Facial")
     void ClearCurves();
 
+    UFUNCTION(BlueprintCallable, Category="BDFR|Facial")
+    void ApplyToSkeletalMesh(USkeletalMeshComponent* SkeletalMesh);
+
     UFUNCTION(BlueprintPure, Category="BDFR|Facial")
     const TMap<FName, float>& GetCurrentCurves() const { return CurrentCurves; }
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BDFR|Facial")
     bool bClampNormalizedCurves = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BDFR|Retarget")
+    TObjectPtr<UBDFRRetargetProfileAsset> RetargetProfile;
 
 private:
     UPROPERTY(Transient)
