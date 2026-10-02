@@ -1,7 +1,10 @@
 #include "bdfr/core/BinaryCodec.h"
 #include "bdfr/core/CurveMixer.h"
 #include "bdfr/core/CurveRegistry.h"
+#include "bdfr/core/CorrectiveEngine.h"
+#include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/Session.h"
+#include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
 #include <cmath>
@@ -177,6 +180,79 @@ int main() {
     expect(a.intersects(b), "time ranges intersect");
     expect(!a.intersects(c), "separated time ranges do not intersect");
     expect(a.contains(2.0), "time range contains point");
+
+
+
+    bdfr::FacialSequence sequence;
+    bdfr::FacialFrame f0;
+    f0.timestampSeconds = 0.0;
+    f0.confidence = 1.0F;
+    f0.curves = {{"jawOpen", 0.0F}, {"AU12", 0.2F}};
+    bdfr::FacialFrame f1;
+    f1.timestampSeconds = 1.0;
+    f1.confidence = 0.8F;
+    f1.curves = {{"jawOpen", 1.0F}, {"AU12", 0.6F}};
+    expect(sequence.addFrame(f1), "sequence accepts frame 1");
+    expect(sequence.addFrame(f0), "sequence inserts frame 0 in timestamp order");
+    expect(sequence.validate(&error), "sequence validates: " + error);
+    expect(std::fabs(sequence.durationSeconds() - 1.0) < 0.0001, "sequence duration is final timestamp");
+    const auto half = sequence.sample(0.5);
+    expect(near(half.curves.at("jawOpen"), 0.5F), "sequence interpolates jaw curve");
+    expect(near(half.curves.at("AU12"), 0.4F), "sequence interpolates AU curve");
+    expect(near(half.confidence, 0.9F), "sequence interpolates confidence");
+
+    bdfr::CorrectiveEngine correctiveEngine;
+    bdfr::CorrectiveRule smileJawCorrective;
+    smileJawCorrective.id = "jaw_smile_fix";
+    smileJawCorrective.conditions = {
+        {"jawOpen", 0.6F, 1.0F},
+        {"AU12", 0.5F, 1.0F}
+    };
+    smileJawCorrective.targetCurve = "mouthPressLeft";
+    smileJawCorrective.targetValue = 0.4F;
+    smileJawCorrective.weight = 0.5F;
+    smileJawCorrective.mode = bdfr::CorrectiveMode::Add;
+    expect(correctiveEngine.addRule(smileJawCorrective), "corrective rule accepted");
+    const auto corrected = correctiveEngine.apply({
+        {"jawOpen", 0.8F},
+        {"AU12", 0.7F},
+        {"mouthPressLeft", 0.1F}
+    });
+    expect(near(corrected.at("mouthPressLeft"), 0.3F), "corrective rule modifies target curve");
+
+    bdfr::ExpressionStack stack;
+    bdfr::ExpressionLayer speechExpression;
+    speechExpression.name = "Speech";
+    speechExpression.layer.curves = {{"jawOpen", 0.7F}};
+    speechExpression.layer.priority = 1;
+    expect(stack.addLayer(speechExpression), "expression speech layer added");
+
+    bdfr::ExpressionLayer emotionExpression;
+    emotionExpression.name = "Emotion";
+    emotionExpression.layer.curves = {{"AU12", 0.8F}};
+    emotionExpression.layer.priority = 2;
+    expect(stack.addLayer(emotionExpression), "expression emotion layer added");
+    expect(!stack.addLayer(emotionExpression), "duplicate expression layer rejected");
+
+    bdfr::CorrectiveRule expressionCorrective;
+    expressionCorrective.id = "expression_fix";
+    expressionCorrective.conditions = {
+        {"jawOpen", 0.6F, 1.0F},
+        {"AU12", 0.7F, 1.0F}
+    };
+    expressionCorrective.targetCurve = "mouthPressRight";
+    expressionCorrective.targetValue = 0.5F;
+    expressionCorrective.weight = 1.0F;
+    expressionCorrective.mode = bdfr::CorrectiveMode::Override;
+    expect(stack.correctives().addRule(expressionCorrective), "expression corrective added");
+
+    const auto expressionOutput = stack.evaluate();
+    expect(near(expressionOutput.at("jawOpen"), 0.7F), "expression stack keeps speech jaw");
+    expect(near(expressionOutput.at("AU12"), 0.8F), "expression stack keeps emotion smile");
+    expect(near(expressionOutput.at("mouthPressRight"), 0.5F), "expression stack applies corrective");
+    expect(stack.setEnabled("Emotion", false), "expression layer can be disabled");
+    const auto withoutEmotion = stack.evaluate();
+    expect(withoutEmotion.find("AU12") == withoutEmotion.end(), "disabled expression layer is excluded");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
