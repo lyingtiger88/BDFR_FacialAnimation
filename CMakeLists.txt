@@ -11,6 +11,7 @@ add_library(bdfr_core
     src/CurveMixer.cpp
     src/Timeline.cpp
     src/Session.cpp
+    src/Timecode.cpp
     src/Sequence.cpp
     src/CorrectiveEngine.cpp
     src/ExpressionStack.cpp
