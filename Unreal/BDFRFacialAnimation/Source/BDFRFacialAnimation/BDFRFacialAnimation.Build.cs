@@ -11,7 +11,8 @@ public class BDFRFacialAnimation : ModuleRules
             {
                 "Core",
                 "CoreUObject",
-                "Engine"
+                "Engine",
+                "LiveLinkInterface"
             }
         );
     }
