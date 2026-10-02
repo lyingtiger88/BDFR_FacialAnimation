@@ -116,4 +116,61 @@ LanguageProfile::englishBootstrap() {
     return profile;
 }
 
+
+LanguageProfile
+LanguageProfile::persianBootstrap() {
+
+    LanguageProfile profile;
+    profile.languageCode = "fa";
+    profile.displayName = "Persian";
+
+    // Provider-neutral phoneme token bootstrap.
+    // Exact tokens may be adapted by concrete G2P/alignment providers.
+    const std::vector<LanguageVisemeRule> rules = {
+        {"m", Viseme::MBP},
+        {"b", Viseme::MBP},
+        {"p", Viseme::MBP},
+
+        {"f", Viseme::FV},
+        {"v", Viseme::FV},
+
+        {"l", Viseme::L},
+        {"r", Viseme::R},
+
+        {"u", Viseme::WQ},
+        {"ow", Viseme::WQ},
+
+        {"i", Viseme::EE},
+        {"e", Viseme::EE},
+
+        {"a", Viseme::AA},
+        {"aa", Viseme::AA},
+
+        {"o", Viseme::OH},
+
+        {"sh", Viseme::CHSH},
+        {"ch", Viseme::CHSH},
+        {"zh", Viseme::CHSH},
+        {"j", Viseme::CHSH},
+
+        {"k", Viseme::KNG},
+        {"g", Viseme::KNG},
+        {"gh", Viseme::KNG},
+        {"kh", Viseme::KNG},
+
+        {"s", Viseme::SZTDN},
+        {"z", Viseme::SZTDN},
+        {"t", Viseme::SZTDN},
+        {"d", Viseme::SZTDN},
+        {"n", Viseme::SZTDN},
+        {"q", Viseme::KNG}
+    };
+
+    for (const auto& rule : rules) {
+        profile.addRule(rule);
+    }
+
+    return profile;
+}
+
 } // namespace bdfr::speech
