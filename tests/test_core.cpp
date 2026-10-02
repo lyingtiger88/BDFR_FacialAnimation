@@ -16,6 +16,8 @@
 #include "bdfr/core/AutoMapper.h"
 #include "bdfr/core/Arkit52.h"
 #include "bdfr/speech/TextSpeech.h"
+#include "bdfr/audio/WavAudio.h"
+#include "bdfr/audio/AudioFeatures.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
 #include "bdfr/runtime/LiveRuntime.h"
@@ -988,6 +990,58 @@ int main() {
            "curve tuning applies gain and output clamp");
     expect(near(tunedMap.at("AU12"), 0.25F),
            "untuned curves pass through normalized");
+
+
+
+    auto appendLe16 = [](std::vector<std::uint8_t>& bytes, std::uint16_t value) {
+        bytes.push_back(static_cast<std::uint8_t>(value & 0xFFu));
+        bytes.push_back(static_cast<std::uint8_t>((value >> 8) & 0xFFu));
+    };
+    auto appendLe32 = [](std::vector<std::uint8_t>& bytes, std::uint32_t value) {
+        for (int i = 0; i < 4; ++i)
+            bytes.push_back(static_cast<std::uint8_t>((value >> (i * 8)) & 0xFFu));
+    };
+
+    std::vector<std::uint8_t> wav;
+    wav.insert(wav.end(), {'R','I','F','F'});
+    appendLe32(wav, 36 + 8);
+    wav.insert(wav.end(), {'W','A','V','E'});
+    wav.insert(wav.end(), {'f','m','t',' '});
+    appendLe32(wav, 16);
+    appendLe16(wav, 1);
+    appendLe16(wav, 1);
+    appendLe32(wav, 8000);
+    appendLe32(wav, 16000);
+    appendLe16(wav, 2);
+    appendLe16(wav, 16);
+    wav.insert(wav.end(), {'d','a','t','a'});
+    appendLe32(wav, 8);
+    appendLe16(wav, static_cast<std::uint16_t>(0));
+    appendLe16(wav, static_cast<std::uint16_t>(16384));
+    appendLe16(wav, static_cast<std::uint16_t>(0xC000));
+    appendLe16(wav, static_cast<std::uint16_t>(0));
+
+    bdfr::audio::AudioBuffer audioBuffer;
+    expect(bdfr::audio::WavAudio::decodePcm16(wav, audioBuffer, &error),
+           "PCM16 WAV decodes: " + error);
+    expect(audioBuffer.valid() && audioBuffer.sampleRate == 8000 &&
+           audioBuffer.channels == 1 && audioBuffer.frameCount() == 4,
+           "decoded WAV metadata is correct");
+    expect(audioBuffer.durationSeconds() > 0.00049 &&
+           audioBuffer.durationSeconds() < 0.00051,
+           "decoded WAV duration is correct");
+    expect(audioBuffer.sample(1, 0) > 0.49F &&
+           audioBuffer.sample(2, 0) < -0.49F,
+           "decoded WAV samples are normalized");
+
+    const auto audioFeatures = bdfr::audio::AudioFeatures::analyze(
+        audioBuffer, 0.0005, 0.00025);
+    expect(!audioFeatures.empty(),
+           "audio frontend extracts windowed features");
+    expect(audioFeatures.front().peak > 0.49F,
+           "audio feature peak captures signal amplitude");
+    expect(audioFeatures.front().rms > 0.2F,
+           "audio feature RMS captures signal energy");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
