@@ -2,6 +2,7 @@
 
 #include "bdfr/core/FacialTypes.h"
 #include "bdfr/core/Sequence.h"
+#include "bdfr/core/Project.h"
 #include "bdfr/core/Session.h"
 
 #include <string>
@@ -18,6 +19,9 @@ public:
 
     static std::string encodeSession(const Session& session);
     static bool decodeSession(const std::string& json, Session& session, std::string* error = nullptr);
+
+    static std::string encodeProject(const Project& project);
+    static bool decodeProject(const std::string& json, Project& project, std::string* error = nullptr);
 };
 
 } // namespace bdfr
