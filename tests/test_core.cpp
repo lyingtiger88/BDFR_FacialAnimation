@@ -21,6 +21,7 @@
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Schema.h"
 #include "bdfr/core/Recovery.h"
+#include "bdfr/expression/EmotionEngine.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -680,6 +681,31 @@ int main() {
     expect(latestRecoveryProject.name == "Persistent Project v2",
            "latest recovery snapshot contains newest project");
     std::filesystem::remove_all(recoveryDir);
+
+
+
+    const auto happyPose = bdfr::expression::EmotionEngine::pose(
+        bdfr::expression::Emotion::Happiness, 1.0F);
+    expect(happyPose.find("AU12") != happyPose.end() &&
+           happyPose.at("AU12") > 0.8F,
+           "happiness preset drives smile AU");
+
+    const auto mixedEmotion = bdfr::expression::EmotionEngine::blend(
+        bdfr::expression::Emotion::Sadness, 0.5F,
+        bdfr::expression::Emotion::Fear, 0.25F);
+    expect(!mixedEmotion.empty(), "emotion presets can be blended");
+
+    bdfr::expression::InstantEvent blinkEvent;
+    blinkEvent.type = bdfr::expression::InstantEventType::Blink;
+    blinkEvent.startSeconds = 1.0;
+    blinkEvent.durationSeconds = 0.2;
+    blinkEvent.intensity = 1.0F;
+    const auto blinkMid = bdfr::expression::InstantEventGenerator::sample(blinkEvent, 1.1);
+    expect(blinkMid.find("eyeBlinkLeft") != blinkMid.end() &&
+           blinkMid.at("eyeBlinkLeft") > 0.9F,
+           "instant blink peaks near event center");
+    expect(bdfr::expression::InstantEventGenerator::sample(blinkEvent, 2.0).empty(),
+           "instant event is inactive outside its time range");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
