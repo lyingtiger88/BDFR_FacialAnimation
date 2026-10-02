@@ -1254,6 +1254,19 @@ int main() {
                bdfr::speech::Viseme::Rest,
            "Language profile preserves fallback for unknown phoneme");
 
+
+
+    const auto persianProfile =
+        bdfr::speech::LanguageProfile::persianBootstrap();
+    expect(persianProfile.languageCode == "fa",
+           "Persian language profile exposes fa language code");
+    expect(persianProfile.mapPhoneme("kh") ==
+               bdfr::speech::Viseme::KNG,
+           "Persian profile maps kh articulation group");
+    expect(persianProfile.mapPhoneme("sh") ==
+               bdfr::speech::Viseme::CHSH,
+           "Persian profile maps sh articulation group");
+
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
         return EXIT_SUCCESS;
