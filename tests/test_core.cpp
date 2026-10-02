@@ -16,6 +16,7 @@
 #include "bdfr/core/AutoMapper.h"
 #include "bdfr/speech/TextSpeech.h"
 #include "bdfr/runtime/LiveRuntime.h"
+#include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -576,6 +577,23 @@ int main() {
            "clock estimator smooths offset changes");
     expect(std::fabs(clock.remoteToLocal(20.0) - 20.3) < 0.0001,
            "clock estimator converts remote timestamp");
+
+
+
+    bdfr::mocap::ExternalMocapProfile externalProfile;
+    externalProfile.name = "MewFace-like Test";
+    expect(externalProfile.addRule({"jaw_open", "jawOpen", 1.0F, 0.0F, 0.0F, 1.0F, false}),
+           "external mocap rule added");
+    expect(externalProfile.addRule({"blink_l", "eyeBlinkLeft", 1.0F, 0.0F, 0.0F, 1.0F, false}),
+           "external mocap blink rule added");
+    const auto normalizedMocap = externalProfile.normalize(
+        {{"jaw_open", 0.7F}, {"blink_l", 0.4F}}, 2.5, 0.9F);
+    expect(std::fabs(normalizedMocap.timestampSeconds - 2.5) < 0.0001,
+           "external mocap preserves timestamp");
+    expect(near(normalizedMocap.curves.at("jawOpen"), 0.7F),
+           "external mocap maps jaw curve");
+    expect(near(normalizedMocap.curves.at("eyeBlinkLeft"), 0.4F),
+           "external mocap maps blink curve");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
