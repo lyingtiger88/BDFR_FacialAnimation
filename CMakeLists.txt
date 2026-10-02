@@ -37,6 +37,7 @@ add_library(bdfr_core
     src/LanguageProfile.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
+    src/MocapCsv.cpp
     src/Schema.cpp
     src/Recovery.cpp
     src/EmotionEngine.cpp
