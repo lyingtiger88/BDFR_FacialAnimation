@@ -27,6 +27,8 @@ add_library(bdfr_core
     src/TextSpeech.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
+    src/Schema.cpp
+    src/Recovery.cpp
     src/FramePacketCodec.cpp
 )
 
