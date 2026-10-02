@@ -5,12 +5,12 @@ import android.graphics.Bitmap;
 
 import com.google.mediapipe.framework.image.BitmapImageBuilder;
 import com.google.mediapipe.framework.image.MPImage;
-import com.google.mediapipe.tasks.core.BaseOptions;
 import com.google.mediapipe.tasks.vision.core.RunningMode;
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker;
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class MediaPipeLiveFaceTracker implements Closeable {
@@ -26,13 +26,15 @@ public final class MediaPipeLiveFaceTracker implements Closeable {
     public MediaPipeLiveFaceTracker(
             Context context,
             String modelAssetPath,
-            Listener listener) {
+            Listener listener) throws IOException {
 
         this.listener = listener;
 
-        BaseOptions baseOptions = BaseOptions.builder()
-                .setModelAssetPath(modelAssetPath)
-                .build();
+        FaceModelManager modelManager =
+                new FaceModelManager(context);
+
+        com.google.mediapipe.tasks.core.BaseOptions baseOptions =
+                modelManager.createBaseOptions();
 
         FaceLandmarker.FaceLandmarkerOptions options =
                 FaceLandmarker.FaceLandmarkerOptions.builder()
