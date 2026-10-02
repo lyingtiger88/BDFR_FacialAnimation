@@ -18,6 +18,8 @@ add_library(bdfr_core
     src/CurveDynamics.cpp
     src/KeyReducer.cpp
     src/Project.cpp
+    src/CurveCatalog.cpp
+    src/CurveTools.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
