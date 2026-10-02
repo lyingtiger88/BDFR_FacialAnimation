@@ -17,6 +17,7 @@
 #include "bdfr/speech/TextSpeech.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
+#include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -594,6 +595,28 @@ int main() {
            "external mocap maps jaw curve");
     expect(near(normalizedMocap.curves.at("eyeBlinkLeft"), 0.4F),
            "external mocap maps blink curve");
+
+
+
+    bdfr::mocap::MocapPacket packet;
+    packet.sourceId = "android-phone-01";
+    packet.sequenceNumber = 42;
+    packet.frame = normalizedMocap;
+    const auto packetBytes = bdfr::runtime::FramePacketCodec::encode(packet);
+    bdfr::mocap::MocapPacket decodedPacket;
+    expect(bdfr::runtime::FramePacketCodec::decode(packetBytes, decodedPacket),
+           "live frame packet roundtrip decodes");
+    expect(decodedPacket.sourceId == packet.sourceId,
+           "live frame packet preserves source id");
+    expect(decodedPacket.sequenceNumber == 42,
+           "live frame packet preserves sequence number");
+    expect(near(decodedPacket.frame.curves.at("jawOpen"), 0.7F),
+           "live frame packet preserves facial curve");
+
+    auto badPacketBytes = packetBytes;
+    badPacketBytes.pop_back();
+    expect(!bdfr::runtime::FramePacketCodec::decode(badPacketBytes, decodedPacket),
+           "truncated live packet is rejected");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
