@@ -33,12 +33,24 @@ public final class LiveStreamClient implements Closeable {
 
         executor.execute(() -> {
             try {
-                DatagramPacket packet = new DatagramPacket(bytes, bytes.length, address, port);
-                socket.send(packet);
+                sendBytes(bytes);
             } catch (IOException ignored) {
-                // UI/runtime diagnostics layer will own reporting in the next integration slice.
+                // Live streaming is best-effort UDP. Runtime diagnostics
+                // report packet loss at the receiver.
             }
         });
+    }
+
+    public void sendBlocking(BdfrFacialFrame frame) throws IOException {
+        final long next = sequence.getAndIncrement();
+        final byte[] bytes = BdfrPacketCodec.encodePacket(sourceId, next, frame);
+        sendBytes(bytes);
+    }
+
+    private void sendBytes(byte[] bytes) throws IOException {
+        DatagramPacket packet =
+                new DatagramPacket(bytes, bytes.length, address, port);
+        socket.send(packet);
     }
 
     public long nextSequenceNumber() {
