@@ -1,6 +1,7 @@
 #include "bdfr/core/BinaryCodec.h"
 #include "bdfr/core/CurveMixer.h"
 #include "bdfr/core/CurveRegistry.h"
+#include "bdfr/core/CurveDynamics.h"
 #include "bdfr/core/CorrectiveEngine.h"
 #include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/JsonCodec.h"
@@ -286,6 +287,28 @@ int main() {
     bdfr::FacialFrame malformedFrame;
     expect(!bdfr::JsonCodec::decodeFrame("{not valid json}", malformedFrame, &error),
            "malformed JSON frame rejected");
+
+
+
+    bdfr::CurveDynamics dynamics;
+    expect(dynamics.setConstraint("jawOpen", {0.1F, 0.9F, 2.0F}),
+           "curve dynamics accepts valid constraint");
+    expect(!dynamics.setConstraint("badCurve", {0.8F, 0.2F, 1.0F}),
+           "curve dynamics rejects inverted range");
+
+    const auto dynamicsStep = dynamics.apply(
+        {{"jawOpen", 0.2F}},
+        {{"jawOpen", 1.0F}},
+        0.1);
+    expect(near(dynamicsStep.at("jawOpen"), 0.4F),
+           "curve velocity limit caps per-step motion");
+
+    const auto dynamicsClamp = dynamics.apply(
+        {{"jawOpen", 0.5F}},
+        {{"jawOpen", 1.0F}},
+        1.0);
+    expect(near(dynamicsClamp.at("jawOpen"), 0.9F),
+           "curve constraint clamps maximum value");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
