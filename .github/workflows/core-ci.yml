@@ -34,6 +34,7 @@ jobs:
           Copy-Item build/Release/bdfr_initial_smoke_tests.exe artifact/BDFR_Initial_Test_Windows/
           Copy-Item build/Release/bdfr_live_receiver.exe artifact/BDFR_Initial_Test_Windows/
           Copy-Item scripts/run_prebuilt_test.ps1 artifact/BDFR_Initial_Test_Windows/
+          Copy-Item scripts/run_hardware_receiver.ps1 artifact/BDFR_Initial_Test_Windows/
           Copy-Item Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Windows/README.md
 
       - name: Upload Windows initial test kit
@@ -53,11 +54,13 @@ jobs:
           cp build/bdfr_initial_smoke_tests artifact/BDFR_Initial_Test_Linux/
           cp build/bdfr_live_receiver artifact/BDFR_Initial_Test_Linux/
           cp scripts/run_prebuilt_test.sh artifact/BDFR_Initial_Test_Linux/
+          cp scripts/run_hardware_receiver.sh artifact/BDFR_Initial_Test_Linux/
           cp Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Linux/README.md
           chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_cli
           chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_initial_smoke_tests
           chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_live_receiver
           chmod +x artifact/BDFR_Initial_Test_Linux/run_prebuilt_test.sh
+          chmod +x artifact/BDFR_Initial_Test_Linux/run_hardware_receiver.sh
 
       - name: Upload Linux initial test kit
         if: matrix.os == 'ubuntu-latest'
