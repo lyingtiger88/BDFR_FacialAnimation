@@ -5,6 +5,7 @@
 #include "bdfr/core/CorrectiveEngine.h"
 #include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/JsonCodec.h"
+#include "bdfr/core/KeyReducer.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -309,6 +310,32 @@ int main() {
         1.0);
     expect(near(dynamicsClamp.at("jawOpen"), 0.9F),
            "curve constraint clamps maximum value");
+
+
+
+    std::vector<bdfr::CurveKey> denseKeys = {
+        {0.0, 0.0F},
+        {0.25, 0.25F},
+        {0.5, 0.5F},
+        {0.75, 0.75F},
+        {1.0, 1.0F}
+    };
+    const auto reducedLinear = bdfr::KeyReducer::reduce(denseKeys, 0.001F);
+    expect(reducedLinear.size() == 2, "linear curve reduces to endpoints");
+    expect(bdfr::KeyReducer::maxError(denseKeys, reducedLinear) <= 0.0011F,
+           "linear reduction stays within tolerance");
+
+    std::vector<bdfr::CurveKey> shapedKeys = {
+        {0.0, 0.0F},
+        {0.25, 0.1F},
+        {0.5, 0.9F},
+        {0.75, 0.2F},
+        {1.0, 0.0F}
+    };
+    const auto reducedShaped = bdfr::KeyReducer::reduce(shapedKeys, 0.05F);
+    expect(reducedShaped.size() > 2, "nonlinear curve preserves shape keys");
+    expect(bdfr::KeyReducer::maxError(shapedKeys, reducedShaped) <= 0.051F,
+           "nonlinear reduction remains within tolerance");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
