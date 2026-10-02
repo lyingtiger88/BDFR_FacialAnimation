@@ -38,6 +38,7 @@ public final class MainActivity extends AppCompatActivity
     private BdfrSessionRecorder sessionRecorder;
     private boolean recording = false;
     private OfflineVideoSolver offlineVideoSolver;
+    private FaceModelManager faceModelManager;
 
     private long solvedFrameCount = 0;
     private long fpsWindowStartMs = 0;
@@ -68,6 +69,7 @@ public final class MainActivity extends AppCompatActivity
 
         sessionRecorder = new BdfrSessionRecorder(this, "bdfr-android");
         offlineVideoSolver = new OfflineVideoSolver(this);
+        faceModelManager = new FaceModelManager(this);
 
         binding.recordButton.setOnClickListener(v -> toggleRecording());
 
@@ -81,8 +83,10 @@ public final class MainActivity extends AppCompatActivity
                 videoPicker.launch(new String[] {"video/*"}));
 
         binding.testPcButton.setOnClickListener(v -> sendPcDiagnosticPacket());
+        binding.modelButton.setOnClickListener(v -> ensureFaceModel());
 
         initializeLiveTracker();
+        updateModelButton();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -92,7 +96,91 @@ public final class MainActivity extends AppCompatActivity
         }
     }
 
+
+    private void updateModelButton() {
+        if (faceModelManager == null) {
+            return;
+        }
+
+        runOnUiThread(() -> {
+            if (faceModelManager.isAvailable()) {
+                binding.modelButton.setText("Model Ready");
+                binding.modelButton.setEnabled(false);
+            } else {
+                binding.modelButton.setText("Get Model");
+                binding.modelButton.setEnabled(true);
+            }
+        });
+    }
+
+    private void ensureFaceModel() {
+        if (faceModelManager == null) {
+            faceModelManager = new FaceModelManager(this);
+        }
+
+        if (faceModelManager.isAvailable()) {
+            updateStatus("Face Landmarker model is already available.");
+            initializeLiveTracker();
+            updateModelButton();
+            return;
+        }
+
+        binding.modelButton.setEnabled(false);
+        updateStatus("Downloading official Face Landmarker model...");
+
+        analysisExecutor.execute(() ->
+                faceModelManager.download(
+                        new FaceModelManager.Listener() {
+                            @Override
+                            public void onProgress(
+                                    long downloadedBytes,
+                                    long totalBytes) {
+                                if (totalBytes > 0) {
+                                    double percent =
+                                            downloadedBytes * 100.0 / totalBytes;
+
+                                    updateStatus(String.format(
+                                            Locale.US,
+                                            "Downloading face model %.1f%%",
+                                            percent));
+                                } else {
+                                    updateStatus(
+                                            "Downloading face model: " +
+                                            downloadedBytes / 1024 +
+                                            " KB");
+                                }
+                            }
+
+                            @Override
+                            public void onReady(java.io.File modelFile) {
+                                updateStatus(
+                                        "Face model ready: " +
+                                        modelFile.getName());
+
+                                runOnUiThread(() -> {
+                                    initializeLiveTracker();
+                                    updateModelButton();
+                                });
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                updateStatus(
+                                        "Face model download failed: " +
+                                        message);
+
+                                runOnUiThread(() ->
+                                        binding.modelButton.setEnabled(true));
+                            }
+                        }));
+    }
+
     private void initializeLiveTracker() {
+        if (liveTracker != null) {
+            liveTracker.close();
+            liveTracker = null;
+        }
+
         try {
             liveTracker = new MediaPipeLiveFaceTracker(
                     this,
