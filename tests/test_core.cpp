@@ -18,6 +18,7 @@
 #include "bdfr/speech/TextSpeech.h"
 #include "bdfr/audio/WavAudio.h"
 #include "bdfr/audio/AudioFeatures.h"
+#include "bdfr/audio/Prosody.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
 #include "bdfr/runtime/LiveRuntime.h"
@@ -1042,6 +1043,32 @@ int main() {
            "audio feature peak captures signal amplitude");
     expect(audioFeatures.front().rms > 0.2F,
            "audio feature RMS captures signal energy");
+
+
+
+    std::vector<bdfr::audio::AudioFeatureFrame> syntheticFeatures = {
+        {0.00, 0.02, 0.01F, 0.02F, 0.10F},
+        {0.02, 0.02, 0.10F, 0.20F, 0.20F},
+        {0.04, 0.02, 0.30F, 0.50F, 0.25F},
+        {0.06, 0.02, 0.12F, 0.22F, 0.18F}
+    };
+    const auto prosodyFrames = bdfr::audio::ProsodyAnalyzer::analyze(
+        syntheticFeatures, 0.20F, 1.5F);
+    expect(prosodyFrames.size() == syntheticFeatures.size(),
+           "prosody analyzer preserves feature frame count");
+    expect(!prosodyFrames.front().speechActive,
+           "prosody analyzer marks quiet window inactive");
+    expect(prosodyFrames[2].speechActive &&
+           prosodyFrames[2].emphasisCandidate,
+           "prosody analyzer finds high-energy emphasis candidate");
+
+    const auto prosodySummary =
+        bdfr::audio::ProsodyAnalyzer::summarize(prosodyFrames);
+    expect(prosodySummary.peakEnergy > 0.29F,
+           "prosody summary records peak energy");
+    expect(prosodySummary.activeSpeechSeconds > 0.0 &&
+           prosodySummary.silenceSeconds > 0.0,
+           "prosody summary tracks active speech and silence");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
