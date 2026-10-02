@@ -28,7 +28,7 @@ struct TimelineClip {
     CurveMap curves;
     int priority = 0;
     bool additive = false;
-    CurveRegionMask regionMask = regionMask(CurveRegion::All);
+    CurveRegionMask regionMask = static_cast<CurveRegionMask>(CurveRegion::All);
 
     bool activeAt(double timeSeconds) const noexcept;
 };
@@ -41,7 +41,7 @@ struct TimelineTrack {
     bool locked = false;
     std::vector<TimelineClip> clips;
     int priority = 0;
-    CurveRegionMask regionMask = regionMask(CurveRegion::All);
+    CurveRegionMask regionMask = static_cast<CurveRegionMask>(CurveRegion::All);
 };
 
 class Timeline {
