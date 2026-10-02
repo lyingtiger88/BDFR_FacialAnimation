@@ -19,6 +19,7 @@
 #include "bdfr/audio/WavAudio.h"
 #include "bdfr/audio/AudioFeatures.h"
 #include "bdfr/audio/Prosody.h"
+#include "bdfr/audio/AudioBehavior.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
 #include "bdfr/runtime/LiveRuntime.h"
@@ -1069,6 +1070,34 @@ int main() {
     expect(prosodySummary.activeSpeechSeconds > 0.0 &&
            prosodySummary.silenceSeconds > 0.0,
            "prosody summary tracks active speech and silence");
+
+
+
+    std::vector<bdfr::audio::ProsodyFrame> cueProsody = {
+        {0.00, 0.10, 0.2F, 0.5F, true, false},
+        {0.10, 0.10, 0.8F, 1.0F, true, true},
+        {0.20, 0.10, 0.1F, 0.1F, false, false},
+        {0.30, 0.10, 0.05F, 0.05F, false, false},
+        {0.40, 0.10, 0.05F, 0.05F, false, false},
+        {0.50, 0.10, 0.2F, 0.5F, true, false}
+    };
+    const auto behaviorCues =
+        bdfr::audio::AudioBehaviorPlanner::plan(
+            cueProsody, 0.16, 0.25);
+    bool foundCueBlink = false;
+    bool foundCueBreath = false;
+    bool foundCueNod = false;
+    for (const auto& cue : behaviorCues) {
+        foundCueBlink = foundCueBlink ||
+            cue.type == bdfr::audio::AudioBehaviorCueType::Blink;
+        foundCueBreath = foundCueBreath ||
+            cue.type == bdfr::audio::AudioBehaviorCueType::Breath;
+        foundCueNod = foundCueNod ||
+            cue.type == bdfr::audio::AudioBehaviorCueType::HeadNod;
+    }
+    expect(foundCueBlink, "audio behavior planner creates blink from pause");
+    expect(foundCueBreath, "audio behavior planner creates breath from long pause");
+    expect(foundCueNod, "audio behavior planner creates head nod from emphasis");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
