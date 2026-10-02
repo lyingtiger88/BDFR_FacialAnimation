@@ -51,6 +51,7 @@ add_library(bdfr_core
     src/FramePacketCodec.cpp
     src/SessionStream.cpp
     src/UdpTransport.cpp
+    src/LiveSessionReceiver.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
