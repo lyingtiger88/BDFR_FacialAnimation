@@ -14,6 +14,7 @@
 #include "bdfr/core/Persistence.h"
 #include "bdfr/core/Retargeter.h"
 #include "bdfr/core/AutoMapper.h"
+#include "bdfr/speech/TextSpeech.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -506,6 +507,38 @@ int main() {
         {"Jaw_Open", "mouthSmile_L", "EyeBlinkRight"},
         0.75F);
     expect(suggestions.size() == 3, "auto mapper finds normalized rig-name matches");
+
+
+
+    const auto speechPlan = bdfr::speech::TextSpeechPlanner::plan(
+        "Bob, we thought you were home.",
+        bdfr::speech::TextSpeechOptions{180.0F, 0.10, 0.20});
+    expect(!speechPlan.empty(), "text SpeechFace generates timed speech events");
+    expect(speechPlan.front().startSeconds >= 0.0, "speech events have non-negative timing");
+
+    bool foundMbp = false;
+    bool foundTh = false;
+    for (const auto& event : speechPlan) {
+        foundMbp = foundMbp || event.viseme == bdfr::speech::Viseme::MBP;
+        foundTh = foundTh || event.viseme == bdfr::speech::Viseme::TH;
+    }
+    expect(foundMbp, "text SpeechFace recognizes MBP viseme group");
+    expect(foundTh, "text SpeechFace recognizes TH digraph");
+
+    const auto mbpPose = bdfr::speech::VisemeSynthesizer::pose(bdfr::speech::Viseme::MBP);
+    expect(mbpPose.find("mouthClose") != mbpPose.end() &&
+           near(mbpPose.at("mouthClose"), 1.0F),
+           "MBP viseme produces lip closure");
+
+    const auto aaPose = bdfr::speech::VisemeSynthesizer::pose(bdfr::speech::Viseme::AA);
+    expect(aaPose.find("jawOpen") != aaPose.end() && aaPose.at("jawOpen") > 0.7F,
+           "AA viseme produces open jaw");
+
+    const double speechSampleTime = speechPlan.front().startSeconds +
+                                    speechPlan.front().durationSeconds * 0.5;
+    const auto sampledSpeechPose = bdfr::speech::VisemeSynthesizer::sample(
+        speechPlan, speechSampleTime);
+    expect(!sampledSpeechPose.empty(), "SpeechFace timeline samples facial curves");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
