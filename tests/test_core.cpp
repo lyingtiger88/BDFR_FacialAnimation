@@ -24,6 +24,7 @@
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
 #include "bdfr/speech/TranscriptTiming.h"
+#include "bdfr/speech/LanguageProfile.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
@@ -1236,6 +1237,22 @@ int main() {
         expect(std::fabs(fittedDuration - 2.0) < 0.001,
                "text-audio timing scales event timeline to audio duration");
     }
+
+
+
+    const auto englishProfile =
+        bdfr::speech::LanguageProfile::englishBootstrap();
+    expect(englishProfile.mapPhoneme("M") ==
+               bdfr::speech::Viseme::MBP,
+           "English language profile maps bilabial phoneme");
+    expect(englishProfile.mapPhoneme("TH") ==
+               bdfr::speech::Viseme::TH,
+           "English language profile maps TH phoneme");
+    expect(englishProfile.mapPhoneme(
+               "unknown",
+               bdfr::speech::Viseme::Rest) ==
+               bdfr::speech::Viseme::Rest,
+           "Language profile preserves fallback for unknown phoneme");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
