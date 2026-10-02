@@ -10,6 +10,7 @@ add_library(bdfr_core
     src/BinaryCodec.cpp
     src/CurveMixer.cpp
     src/Timeline.cpp
+    src/Session.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
