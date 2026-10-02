@@ -15,6 +15,7 @@ The long-term objective is a production-grade system that can approach the workf
 
 - FACS-based facial representation
 - Markerless video/camera facial capture
+- Offline facial-animation extraction from prerecorded video on desktop and Android
 - Audio-to-face animation
 - Context-aware coarticulation instead of simple phoneme-to-viseme switching
 - Prosody-driven facial performance
@@ -64,7 +65,7 @@ The long-term objective is a production-grade system that can approach the workf
 ## Planned modules
 
 ### BDFR FaceCapture
-Camera and prerecorded-video facial tracking.
+Camera and prerecorded-video facial tracking on desktop and mobile.
 
 Planned responsibilities:
 - facial landmark detection
@@ -74,6 +75,9 @@ Planned responsibilities:
 - temporal stabilization
 - actor calibration
 - expression solve preparation
+- offline video-to-animation extraction
+- full-sequence analysis with look-ahead/look-behind in Studio mode
+- Android local solve or deferred PC solve
 
 ### BDFR FaceSolver
 Converts observations into a normalized facial representation.
@@ -196,6 +200,8 @@ BDFR_FacialAnimation/
 │  ├─ SpeechFace/
 │  ├─ ExpressionEngine/
 │  └─ Retargeter/
+├─ Mobile/
+│  └─ BDFR_FaceCapture_Android/
 ├─ Runtime/
 │  ├─ Core/
 │  ├─ Audio/
