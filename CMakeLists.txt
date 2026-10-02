@@ -26,6 +26,7 @@ add_library(bdfr_core
     src/AutoMapper.cpp
     src/TextSpeech.cpp
     src/DialogueMarkup.cpp
+    src/DialogueCompiler.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
     src/Schema.cpp
