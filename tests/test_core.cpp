@@ -22,6 +22,7 @@
 #include "bdfr/core/Schema.h"
 #include "bdfr/core/Recovery.h"
 #include "bdfr/expression/EmotionEngine.h"
+#include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -706,6 +707,42 @@ int main() {
            "instant blink peaks near event center");
     expect(bdfr::expression::InstantEventGenerator::sample(blinkEvent, 2.0).empty(),
            "instant event is inactive outside its time range");
+
+
+
+    bdfr::FusionInput speechFusion;
+    speechFusion.sourceId = "speech";
+    speechFusion.curves = {{"jawOpen", 0.8F}, {"eyeBlinkLeft", 0.2F}};
+    speechFusion.confidence = 1.0F;
+
+    bdfr::FusionInput mocapFusion;
+    mocapFusion.sourceId = "mocap";
+    mocapFusion.curves = {{"jawOpen", 0.3F}, {"eyeBlinkLeft", 0.9F}};
+    mocapFusion.confidence = 1.0F;
+
+    bdfr::FusionSourceConfig speechConfig;
+    speechConfig.sourceId = "speech";
+    speechConfig.priority = 5;
+    speechConfig.defaultWeight = 0.0F;
+    speechConfig.regionWeights = {
+        {bdfr::regionMask(bdfr::CurveRegion::Mouth), 1.0F},
+        {bdfr::regionMask(bdfr::CurveRegion::Jaw), 1.0F}
+    };
+
+    bdfr::FusionSourceConfig mocapConfig;
+    mocapConfig.sourceId = "mocap";
+    mocapConfig.priority = 10;
+    mocapConfig.defaultWeight = 1.0F;
+    mocapConfig.regionWeights = {
+        {bdfr::regionMask(bdfr::CurveRegion::Jaw), 0.0F}
+    };
+
+    const auto fusedPerformance = bdfr::PerformanceFusion::fuse(
+        {}, {speechFusion, mocapFusion}, {speechConfig, mocapConfig});
+    expect(near(fusedPerformance.at("jawOpen"), 0.8F),
+           "fusion keeps speech-owned jaw region");
+    expect(near(fusedPerformance.at("eyeBlinkLeft"), 0.9F),
+           "fusion keeps mocap-owned eye region");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
