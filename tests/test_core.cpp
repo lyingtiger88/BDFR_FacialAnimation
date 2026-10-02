@@ -19,6 +19,8 @@
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/core/Session.h"
+#include "bdfr/core/Schema.h"
+#include "bdfr/core/Recovery.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -635,6 +637,49 @@ int main() {
            packetBytes[3] == static_cast<std::uint8_t>('P') &&
            packetBytes[4] == 1 && packetBytes[5] == 0,
            "live packet uses deterministic little-endian BDFP header");
+
+
+
+    expect(bdfr::Schema::frameCompatibility(1) == bdfr::SchemaCompatibility::Supported,
+           "current frame schema is supported");
+    expect(bdfr::Schema::frameCompatibility(2) == bdfr::SchemaCompatibility::TooNew,
+           "future frame schema is rejected");
+    expect(bdfr::Schema::projectCompatibility(0) == bdfr::SchemaCompatibility::TooOld,
+           "old project schema is classified");
+
+    bdfr::FacialFrame schemaFrame;
+    schemaFrame.schemaVersion = 1;
+    expect(bdfr::Schema::normalizeFrame(schemaFrame), "current frame schema normalizes");
+    schemaFrame.schemaVersion = 2;
+    expect(!bdfr::Schema::normalizeFrame(schemaFrame), "future frame schema does not normalize");
+
+    const auto recoveryDir =
+        std::filesystem::temp_directory_path() / "bdfr_recovery_test";
+    std::filesystem::remove_all(recoveryDir);
+    expect(bdfr::Recovery::saveRotatingSnapshot(
+               recoveryDir, "project", persistedProject, 3, &error),
+           "first recovery snapshot saves: " + error);
+
+    bdfr::Project recoveryProject2 = persistedProject;
+    recoveryProject2.name = "Persistent Project v2";
+    expect(bdfr::Recovery::saveRotatingSnapshot(
+               recoveryDir, "project", recoveryProject2, 3, &error),
+           "second recovery snapshot rotates: " + error);
+
+    const auto latestRecovery = bdfr::Recovery::latestSnapshot(recoveryDir, "project");
+    expect(!latestRecovery.empty() && std::filesystem::exists(latestRecovery),
+           "latest recovery snapshot is discoverable");
+    expect(std::filesystem::exists(
+               recoveryDir / "project.recovery.1.bdfr.json"),
+           "older recovery snapshot is retained");
+
+    bdfr::Project latestRecoveryProject;
+    expect(bdfr::Persistence::loadProject(
+               latestRecovery, latestRecoveryProject, &error),
+           "latest recovery project loads");
+    expect(latestRecoveryProject.name == "Persistent Project v2",
+           "latest recovery snapshot contains newest project");
+    std::filesystem::remove_all(recoveryDir);
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
