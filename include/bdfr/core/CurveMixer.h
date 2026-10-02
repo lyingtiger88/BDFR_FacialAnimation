@@ -34,7 +34,7 @@ struct CurveLayer {
     float weight = 1.0F;
     bool additive = false;
     int priority = 0;
-    CurveRegionMask regionMask = regionMask(CurveRegion::All);
+    CurveRegionMask regionMask = static_cast<CurveRegionMask>(CurveRegion::All);
 };
 
 class CurveMixer {
