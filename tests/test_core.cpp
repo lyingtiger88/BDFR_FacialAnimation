@@ -27,6 +27,7 @@
 #include "bdfr/speech/LanguageProfile.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
+#include "bdfr/mocap/MocapCsv.h"
 #include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
@@ -1301,6 +1302,45 @@ int main() {
 
     expect(driftCorrector.baseline().at("jawOpen") <= 0.15F,
            "neutral drift baseline respects correction limit");
+
+
+
+    bdfr::FacialSequence csvSequence;
+    const std::string csvMocap =
+        "time,jawOpen,eyeBlinkLeft\n"
+        "0.000,0.10,0.00\n"
+        "0.033,0.55,0.20\n"
+        "0.066,1.20,0.90\n";
+
+    expect(bdfr::mocap::MocapCsv::decode(
+               csvMocap,
+               csvSequence,
+               {},
+               &error),
+           "mocap CSV decodes to facial sequence: " + error);
+
+    expect(csvSequence.frames().size() == 3,
+           "mocap CSV preserves frame count");
+
+    expect(near(
+               csvSequence.frames().back().curves.at("jawOpen"),
+               1.0F),
+           "mocap CSV clamps curves to normalized range");
+
+    const std::string exportedCsv =
+        bdfr::mocap::MocapCsv::encode(csvSequence);
+
+    bdfr::FacialSequence csvRoundtrip;
+    expect(bdfr::mocap::MocapCsv::decode(
+               exportedCsv,
+               csvRoundtrip,
+               {},
+               &error),
+           "exported mocap CSV roundtrips: " + error);
+
+    expect(csvRoundtrip.frames().size() ==
+               csvSequence.frames().size(),
+           "mocap CSV roundtrip preserves frame count");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
