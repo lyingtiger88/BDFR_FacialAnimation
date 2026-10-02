@@ -3,6 +3,7 @@
 #include "BDFRFacialComponent.h"
 #include "BDFRLiveLinkSource.h"
 
+#include "Components/SkeletalMeshComponent.h"
 #include "Common/UdpSocketBuilder.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
@@ -369,6 +370,19 @@ void UBDFRLiveReceiverComponent::BeginPlay()
                   UBDFRFacialComponent>()
             : nullptr;
 
+    if (TargetSkeletalMesh)
+    {
+        CachedSkeletalMesh = TargetSkeletalMesh;
+    }
+    else
+    {
+        CachedSkeletalMesh =
+            GetOwner()
+                ? GetOwner()->FindComponentByClass<
+                      USkeletalMeshComponent>()
+                : nullptr;
+    }
+
     if (bAutoStart)
     {
         StartReceiver();
@@ -570,6 +584,28 @@ void UBDFRLiveReceiverComponent::ApplyToOwner(
     {
         FacialComponent->SetCurveValues(
             Frame.Curves);
+
+        if (bApplyToSkeletalMesh)
+        {
+            USkeletalMeshComponent* SkeletalMesh =
+                CachedSkeletalMesh.Get();
+
+            if (!SkeletalMesh && GetOwner())
+            {
+                SkeletalMesh =
+                    GetOwner()->FindComponentByClass<
+                        USkeletalMeshComponent>();
+
+                CachedSkeletalMesh =
+                    SkeletalMesh;
+            }
+
+            if (SkeletalMesh)
+            {
+                FacialComponent->ApplyToSkeletalMesh(
+                    SkeletalMesh);
+            }
+        }
     }
 }
 
