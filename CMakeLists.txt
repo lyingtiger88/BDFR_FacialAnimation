@@ -34,6 +34,7 @@ add_library(bdfr_core
     src/DialogueMarkup.cpp
     src/DialogueCompiler.cpp
     src/TranscriptTiming.cpp
+    src/LanguageProfile.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
     src/Schema.cpp
