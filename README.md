@@ -250,9 +250,21 @@ High-level milestones:
 
 ## Current status
 
-**Project bootstrap / architecture phase.**
+**Core bootstrap is now testable.**
 
-The repository has been initialized and the first implementation milestone is the shared FACS/curve core plus UE5 transport.
+Implemented in the first C++ core slice:
+- versioned `FacialFrame` data model
+- canonical FACS/practical curve registry
+- frame validation and sanitization
+- weighted curve mixing
+- temporal exponential smoothing
+- compact binary facial-frame codec
+- multi-track timeline data model including Text, Emotion, Instant Event and Mocap tracks
+- CMake build
+- executable core unit tests
+- GitHub Actions CI on Windows and Ubuntu
+
+The next implementation slice is timeline evaluation, region masks/priorities, session/take model, partial re-solve primitives, and the first UE5 adapter.
 
 ## Documentation
 
@@ -260,6 +272,21 @@ The repository has been initialized and the first implementation milestone is th
 - [Architecture](Docs/ARCHITECTURE.md)
 - [Quality Targets](Docs/QUALITY_TARGETS.md)
 - [Development Plan](Docs/DEVELOPMENT.md)
+- [Testing](Docs/TESTING.md)
+
+## Build and test
+
+Requirements:
+- CMake 3.20+
+- C++17 compiler
+
+```bash
+cmake -S . -B build
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The bootstrap test suite has been compiled and executed successfully during development. CI repeats the build and tests on Windows and Ubuntu.
 
 ## License
 
