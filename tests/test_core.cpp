@@ -14,6 +14,7 @@
 #include "bdfr/core/Persistence.h"
 #include "bdfr/core/Retargeter.h"
 #include "bdfr/core/AutoMapper.h"
+#include "bdfr/core/Arkit52.h"
 #include "bdfr/speech/TextSpeech.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
@@ -935,6 +936,28 @@ int main() {
            "UDP loopback preserves packet metadata");
     expect(near(udpPacket.frame.curves.at("jawOpen"), 0.7F),
            "UDP loopback preserves facial curves");
+
+
+
+    expect(bdfr::Arkit52::curveNames().size() == 52,
+           "ARKit interoperability exposes all 52 standard curves");
+    for (const auto& curveName : bdfr::Arkit52::curveNames()) {
+        expect(registry.isRegistered(curveName),
+               "ARKit curve is registered in canonical BDFR registry: " + curveName);
+    }
+
+    const auto arkitIdentity = bdfr::Arkit52::identityProfile();
+    expect(arkitIdentity.mappings().size() == 52,
+           "ARKit identity retarget profile contains 52 mappings");
+    const auto arkitMapped = arkitIdentity.apply({
+        {"jawOpen", 0.65F},
+        {"eyeBlinkLeft", 0.4F},
+        {"tongueOut", 0.2F}
+    });
+    expect(near(arkitMapped.at("jawOpen"), 0.65F) &&
+           near(arkitMapped.at("eyeBlinkLeft"), 0.4F) &&
+           near(arkitMapped.at("tongueOut"), 0.2F),
+           "ARKit identity retarget preserves normalized curves");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
