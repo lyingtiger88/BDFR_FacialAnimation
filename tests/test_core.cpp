@@ -25,6 +25,8 @@
 #include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Calibration.h"
 #include "bdfr/expression/BehaviorEngine.h"
+#include "bdfr/capture/FaceObservation.h"
+#include "bdfr/capture/CaptureQuality.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -788,6 +790,44 @@ int main() {
         behaviorProfile, 1.0, 123);
     expect(std::fabs(behaviorMotion.head.yaw - behaviorRepeat.head.yaw) < 0.000001,
            "procedural behavior is deterministic for seed/time");
+
+
+
+    std::uint8_t fakePixels[16] = {};
+    bdfr::capture::ImageView imageView;
+    imageView.data = fakePixels;
+    imageView.sizeBytes = sizeof(fakePixels);
+    imageView.width = 2;
+    imageView.height = 2;
+    imageView.strideBytes = 8;
+    imageView.format = bdfr::capture::PixelFormat::RGBA32;
+    imageView.timestampSeconds = 0.5;
+    expect(imageView.valid(), "capture image view validates");
+
+    bdfr::capture::FaceObservation observation;
+    observation.timestampSeconds = 0.5;
+    observation.confidence = 0.9F;
+    observation.landmarks = {
+        {0.1F, 0.2F, 0.0F, 0.9F},
+        {0.8F, 0.2F, 0.0F, 0.8F}
+    };
+    observation.regions.mouth = 0.9F;
+    observation.regions.leftEye = 0.8F;
+    observation.regions.rightEye = 0.8F;
+    observation.regions.brows = 0.75F;
+    observation.regions.jaw = 0.85F;
+    expect(observation.valid(), "face observation validates");
+
+    const auto quality = bdfr::capture::CaptureQuality::evaluate(observation, 0.45F);
+    expect(quality.overall > 0.7F && !quality.badTake,
+           "good face observation passes capture quality");
+
+    observation.occluded = true;
+    const auto occludedQuality = bdfr::capture::CaptureQuality::evaluate(observation, 0.75F);
+    expect(occludedQuality.occlusionPenaltyApplied,
+           "capture quality applies occlusion penalty");
+    expect(occludedQuality.badTake,
+           "occluded low-quality observation can be flagged as bad take");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
