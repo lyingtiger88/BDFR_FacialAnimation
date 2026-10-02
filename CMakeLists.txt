@@ -24,6 +24,7 @@ add_library(bdfr_core
     src/Persistence.cpp
     src/Retargeter.cpp
     src/AutoMapper.cpp
+    src/Arkit52.cpp
     src/TextSpeech.cpp
     src/DialogueMarkup.cpp
     src/DialogueCompiler.cpp
