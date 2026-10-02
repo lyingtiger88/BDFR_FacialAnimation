@@ -12,6 +12,7 @@
 #include "bdfr/core/History.h"
 #include "bdfr/core/Project.h"
 #include "bdfr/core/Persistence.h"
+#include "bdfr/core/Retargeter.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -471,6 +472,27 @@ int main() {
     expect(!std::filesystem::exists(persistencePath.string() + ".tmp"),
            "atomic save leaves no temporary file");
     std::filesystem::remove(persistencePath);
+
+
+
+    bdfr::RetargetProfile retarget;
+    retarget.name = "Test Rig";
+    expect(retarget.addMapping({"jawOpen", "CTRL_JawOpen", 1.2F, 0.0F, 0.0F, 1.0F, 0.05F, false}),
+           "retarget mapping added");
+    expect(retarget.addMapping({"eyeBlinkLeft", "Blink_L", 1.0F, 0.0F, 0.0F, 1.0F, 0.0F, false}),
+           "second retarget mapping added");
+
+    const auto retargeted = retarget.apply({
+        {"jawOpen", 0.5F},
+        {"eyeBlinkLeft", 0.8F}
+    });
+    expect(near(retargeted.at("CTRL_JawOpen"), 0.6F), "retarget scale is applied");
+    expect(near(retargeted.at("Blink_L"), 0.8F), "retarget preserves direct mapping");
+
+    const auto compatibility = retarget.scanCompatibility({"CTRL_JawOpen"});
+    expect(compatibility.mappedTargets == 1, "compatibility counts mapped target");
+    expect(compatibility.missingTargets == 1, "compatibility counts missing target");
+    expect(near(compatibility.coverage, 0.5F), "compatibility coverage computed");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
