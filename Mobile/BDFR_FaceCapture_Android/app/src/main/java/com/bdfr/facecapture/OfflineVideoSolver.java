@@ -124,7 +124,11 @@ public final class OfflineVideoSolver implements Closeable {
                 if (recorder != null) {
                     recorder.close();
                 }
-                retriever.release();
+                try {
+                    retriever.release();
+                } catch (IOException ignored) {
+                    // Cleanup failure should not mask solve result/error.
+                }
             }
         });
     }
