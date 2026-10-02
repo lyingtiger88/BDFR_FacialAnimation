@@ -4,6 +4,7 @@
 #include "bdfr/core/CurveDynamics.h"
 #include "bdfr/core/CurveCatalog.h"
 #include "bdfr/core/CurveTools.h"
+#include "bdfr/core/Diagnostics.h"
 #include "bdfr/core/CorrectiveEngine.h"
 #include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/JsonCodec.h"
@@ -427,6 +428,30 @@ int main() {
     expect(decodedProject.actors.size() == 1, "JSON project actor preserved");
     expect(decodedProject.sessions.size() == 1, "JSON project session preserved");
     expect(decodedProject.sessions[0].takes.size() == 1, "JSON project take preserved");
+
+
+
+    bdfr::LogLevel capturedLevel = bdfr::LogLevel::Trace;
+    std::string capturedMessage;
+    bdfr::Logger::setSink([&](bdfr::LogLevel level, const std::string& message) {
+        capturedLevel = level;
+        capturedMessage = message;
+    });
+    bdfr::Logger::write(bdfr::LogLevel::Info, "diagnostics-test");
+    expect(capturedLevel == bdfr::LogLevel::Info && capturedMessage == "diagnostics-test",
+           "logger routes messages through installed sink");
+
+    bdfr::Stopwatch stopwatch;
+    expect(stopwatch.elapsedMilliseconds() >= 0.0, "stopwatch reports non-negative duration");
+
+    bool timerCalled = false;
+    {
+        bdfr::ScopedTimer timer("scope-test",
+            [&](const std::string& label, double elapsedMs) {
+                timerCalled = label == "scope-test" && elapsedMs >= 0.0;
+            });
+    }
+    expect(timerCalled, "scoped timer reports duration on destruction");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
