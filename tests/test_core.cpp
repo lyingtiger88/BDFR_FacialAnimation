@@ -1,6 +1,7 @@
 #include "bdfr/core/BinaryCodec.h"
 #include "bdfr/core/CurveMixer.h"
 #include "bdfr/core/CurveRegistry.h"
+#include "bdfr/core/Session.h"
 #include "bdfr/core/Timeline.h"
 
 #include <cmath>
@@ -10,12 +11,14 @@
 
 namespace {
 int failures = 0;
+
 void expect(bool condition, const std::string& message) {
     if (!condition) {
         ++failures;
         std::cerr << "FAIL: " << message << '\n';
     }
 }
+
 bool near(float a, float b, float epsilon = 0.0001F) {
     return std::fabs(a - b) <= epsilon;
 }
@@ -46,7 +49,8 @@ int main() {
     const auto encoded = bdfr::BinaryCodec::encode(valid);
     bdfr::FacialFrame decoded;
     expect(bdfr::BinaryCodec::decode(encoded, decoded), "binary frame roundtrip decodes");
-    expect(std::fabs(decoded.timestampSeconds - valid.timestampSeconds) < 0.000001, "binary timestamp preserved");
+    expect(std::fabs(decoded.timestampSeconds - valid.timestampSeconds) < 0.000001,
+           "binary timestamp preserved");
     expect(near(decoded.curves.at("AU12"), 0.75F), "binary curve preserved");
     auto truncated = encoded;
     truncated.pop_back();
@@ -59,8 +63,25 @@ int main() {
     expect(near(mixed.at("jawOpen"), 0.5F), "weighted override mix works");
     expect(near(mixed.at("AU12"), 0.6F), "emotion layer mixes independently");
 
-    const auto smoothed = bdfr::CurveMixer::exponentialSmooth({{"jawOpen", 0.0F}}, {{"jawOpen", 1.0F}}, 0.25F);
+    const auto smoothed = bdfr::CurveMixer::exponentialSmooth(
+        {{"jawOpen", 0.0F}}, {{"jawOpen", 1.0F}}, 0.25F);
     expect(near(smoothed.at("jawOpen"), 0.25F), "exponential smoothing works");
+
+    bdfr::CurveLayer mouthOnly;
+    mouthOnly.curves = {{"mouthSmileLeft", 0.8F}, {"eyeBlinkLeft", 1.0F}};
+    mouthOnly.regionMask = bdfr::regionMask(bdfr::CurveRegion::Mouth);
+    const auto regionMixed = bdfr::CurveMixer::mix({}, {mouthOnly});
+    expect(regionMixed.find("mouthSmileLeft") != regionMixed.end(), "mouth region passes mouth curve");
+    expect(regionMixed.find("eyeBlinkLeft") == regionMixed.end(), "mouth region blocks eye curve");
+
+    bdfr::CurveLayer low;
+    low.curves = {{"AU12", 0.2F}};
+    low.priority = 1;
+    bdfr::CurveLayer high;
+    high.curves = {{"AU12", 0.9F}};
+    high.priority = 10;
+    const auto priorityMixed = bdfr::CurveMixer::mix({}, {high, low});
+    expect(near(priorityMixed.at("AU12"), 0.9F), "higher-priority override is applied last");
 
     bdfr::Timeline timeline;
     expect(timeline.addTrack({"Dialogue", bdfr::TrackType::TextDialogue}), "text track added");
@@ -68,17 +89,100 @@ int main() {
     expect(timeline.addTrack({"Ticks", bdfr::TrackType::InstantEvent}), "instant-event track added");
     expect(timeline.addTrack({"Mocap", bdfr::TrackType::Mocap}), "mocap track added");
 
-    expect(timeline.addClip(0, {"line_001", 0.0, 2.5, "Where have you been?", 1.0F}), "text clip added");
-    expect(timeline.addClip(1, {"emotion_001", 0.0, 2.5, "concerned:0.55", 1.0F}), "emotion clip added");
-    expect(timeline.addClip(2, {"blink_001", 1.1, 0.12, "blink", 1.0F}), "instant event added");
-    expect(timeline.addClip(3, {"mocap_001", 0.0, 3.0, "take_001.bdfr", 1.0F}), "mocap clip added");
+    expect(timeline.addClip(0, {"line_001", 0.0, 2.5, "Where have you been?", 1.0F}),
+           "text clip added");
+    expect(timeline.addClip(1, {"emotion_001", 0.0, 2.5, "concerned:0.55", 1.0F}),
+           "emotion clip added");
+    expect(timeline.addClip(2, {"blink_001", 1.1, 0.12, "blink", 1.0F}),
+           "instant event added");
+    expect(timeline.addClip(3, {"mocap_001", 0.0, 3.0, "take_001.bdfr", 1.0F}),
+           "mocap clip added");
     expect(timeline.validate(&error), "timeline validates: " + error);
     expect(std::fabs(timeline.durationSeconds() - 3.0) < 0.0001, "timeline duration computed");
+
+    bdfr::Timeline evalTimeline;
+    bdfr::TimelineTrack speechTrack{"Speech", bdfr::TrackType::GeneratedSpeech};
+    speechTrack.priority = 1;
+    speechTrack.regionMask = bdfr::regionMask(bdfr::CurveRegion::Mouth) |
+                             bdfr::regionMask(bdfr::CurveRegion::Jaw);
+    expect(evalTimeline.addTrack(speechTrack), "speech evaluation track added");
+
+    bdfr::TimelineTrack mocapTrack{"Mocap", bdfr::TrackType::Mocap};
+    mocapTrack.priority = 5;
+    expect(evalTimeline.addTrack(mocapTrack), "mocap evaluation track added");
+
+    bdfr::TimelineClip speechClip;
+    speechClip.id = "speech_curves";
+    speechClip.startSeconds = 0.0;
+    speechClip.durationSeconds = 2.0;
+    speechClip.curves = {{"jawOpen", 0.8F}, {"eyeBlinkLeft", 1.0F}};
+    expect(evalTimeline.addClip(0, speechClip), "speech curve clip added");
+
+    bdfr::TimelineClip mocapClip;
+    mocapClip.id = "mocap_curves";
+    mocapClip.startSeconds = 0.0;
+    mocapClip.durationSeconds = 2.0;
+    mocapClip.curves = {{"jawOpen", 0.3F}, {"eyeBlinkLeft", 0.9F}};
+    expect(evalTimeline.addClip(1, mocapClip), "mocap curve clip added");
+
+    auto evaluated = evalTimeline.evaluate(1.0);
+    expect(near(evaluated.at("jawOpen"), 0.3F), "track priority resolves jaw override");
+    expect(near(evaluated.at("eyeBlinkLeft"), 0.9F), "mocap provides eye curve");
+    expect(evalTimeline.evaluate(3.0).empty(), "inactive clips do not evaluate");
+
+    evalTimeline.tracks()[1].muted = true;
+    evaluated = evalTimeline.evaluate(1.0);
+    expect(near(evaluated.at("jawOpen"), 0.8F), "muted mocap reveals speech jaw");
+    expect(evaluated.find("eyeBlinkLeft") == evaluated.end(),
+           "speech region mask blocks eye curve after mocap mute");
+
+    evalTimeline.tracks()[1].muted = false;
+    evalTimeline.tracks()[0].solo = true;
+    evaluated = evalTimeline.evaluate(1.0);
+    expect(near(evaluated.at("jawOpen"), 0.8F), "solo track isolates speech");
+    expect(evaluated.find("eyeBlinkLeft") == evaluated.end(), "solo respects region mask");
+
+    bdfr::Session session;
+    session.id = "session_001";
+    session.project = "BDFR_Test";
+    session.scene = "Scene01";
+    session.shot = "Shot010";
+
+    bdfr::Take take;
+    take.id = "take_001";
+    take.name = "Take 001";
+    take.actorId = "actor_001";
+    take.source = "desktop-video";
+    take.durationSeconds = 10.0;
+    take.frameRateNumerator = 30000;
+    take.frameRateDenominator = 1001;
+    expect(session.addTake(take), "session take added");
+    expect(!session.addTake(take), "duplicate take id rejected");
+    expect(session.findTake("take_001") != nullptr, "take lookup works");
+
+    expect(session.markDirty("take_001", {2.0, 4.0}), "first partial re-solve range accepted");
+    expect(session.markDirty("take_001", {3.5, 6.0}), "overlapping partial re-solve range accepted");
+    const auto* storedTake = session.findTake("take_001");
+    expect(storedTake != nullptr && storedTake->dirtyRanges.size() == 1,
+           "overlapping dirty ranges merge");
+    expect(storedTake != nullptr &&
+           std::fabs(storedTake->dirtyRanges[0].startSeconds - 2.0) < 0.0001 &&
+           std::fabs(storedTake->dirtyRanges[0].endSeconds - 6.0) < 0.0001,
+           "merged partial re-solve range is correct");
+    expect(!session.markDirty("take_001", {9.0, 11.0}), "out-of-take dirty range rejected");
+
+    bdfr::TimeRange a{1.0, 3.0};
+    bdfr::TimeRange b{2.5, 5.0};
+    bdfr::TimeRange c{4.0, 5.0};
+    expect(a.intersects(b), "time ranges intersect");
+    expect(!a.intersects(c), "separated time ranges do not intersect");
+    expect(a.contains(2.0), "time range contains point");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
         return EXIT_SUCCESS;
     }
+
     std::cerr << failures << " test(s) failed.\n";
     return EXIT_FAILURE;
 }
