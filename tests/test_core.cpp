@@ -19,6 +19,7 @@
 #include "bdfr/audio/WavAudio.h"
 #include "bdfr/audio/AudioFeatures.h"
 #include "bdfr/audio/Prosody.h"
+#include "bdfr/audio/PitchTracker.h"
 #include "bdfr/audio/AudioBehavior.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
@@ -1171,6 +1172,46 @@ int main() {
            "live receiver releases playback-ready frame");
     expect(liveReady.timestampSeconds > 10.0,
            "live receiver converts remote timestamp to local time");
+
+
+
+    bdfr::audio::AudioBuffer sineAudio;
+    sineAudio.sampleRate = 8000;
+    sineAudio.channels = 1;
+    const double sineFrequency = 200.0;
+    const std::size_t sineFrames = 800;
+    sineAudio.samples.resize(sineFrames);
+    for (std::size_t i = 0; i < sineFrames; ++i) {
+        sineAudio.samples[i] = static_cast<float>(
+            0.7 * std::sin(
+                2.0 * 3.14159265358979323846 *
+                sineFrequency *
+                static_cast<double>(i) /
+                static_cast<double>(sineAudio.sampleRate)));
+    }
+
+    const auto pitchFrames =
+        bdfr::audio::PitchTracker::analyze(
+            sineAudio,
+            0.040,
+            0.010,
+            80.0F,
+            350.0F,
+            0.5F);
+
+    expect(!pitchFrames.empty(),
+           "pitch tracker returns analysis frames");
+
+    bool foundVoicedPitch = false;
+    for (const auto& pitchFrame : pitchFrames) {
+        if (pitchFrame.voiced &&
+            std::fabs(pitchFrame.frequencyHz - 200.0F) < 8.0F) {
+            foundVoicedPitch = true;
+            break;
+        }
+    }
+    expect(foundVoicedPitch,
+           "pitch tracker estimates synthetic 200 Hz tone");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
