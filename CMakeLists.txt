@@ -46,6 +46,8 @@ add_library(bdfr_core
     src/CaptureQuality.cpp
     src/OfflineVideoProcessor.cpp
     src/SequenceFilter.cpp
+    src/SequenceDiagnostics.cpp
+    src/SequenceCleanup.cpp
     src/FramePacketCodec.cpp
     src/UdpTransport.cpp
 )
@@ -77,3 +79,8 @@ endif()
 add_executable(bdfr_offline_pipeline_tests tests/test_offline_pipeline.cpp)
 target_link_libraries(bdfr_offline_pipeline_tests PRIVATE bdfr_core)
 add_test(NAME bdfr_offline_pipeline_tests COMMAND bdfr_offline_pipeline_tests)
+
+
+add_executable(bdfr_quality_tests tests/test_quality.cpp)
+target_link_libraries(bdfr_quality_tests PRIVATE bdfr_core)
+add_test(NAME bdfr_quality_tests COMMAND bdfr_quality_tests)
