@@ -25,27 +25,41 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
 
+      - name: Prepare Windows initial test kit
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifact/BDFR_Initial_Test_Windows | Out-Null
+          Copy-Item build/Release/bdfr_cli.exe artifact/BDFR_Initial_Test_Windows/
+          Copy-Item build/Release/bdfr_initial_smoke_tests.exe artifact/BDFR_Initial_Test_Windows/
+          Copy-Item scripts/run_prebuilt_test.ps1 artifact/BDFR_Initial_Test_Windows/
+          Copy-Item Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Windows/README.md
 
       - name: Upload Windows initial test kit
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: BDFR_Initial_Test_Windows
-          path: |
-            build/Release/bdfr_cli.exe
-            build/Release/bdfr_initial_smoke_tests.exe
-            scripts/run_initial_test.ps1
-            Docs/INITIAL_TEST.md
+          path: artifact/BDFR_Initial_Test_Windows
           if-no-files-found: error
+
+      - name: Prepare Linux initial test kit
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mkdir -p artifact/BDFR_Initial_Test_Linux
+          cp build/bdfr_cli artifact/BDFR_Initial_Test_Linux/
+          cp build/bdfr_initial_smoke_tests artifact/BDFR_Initial_Test_Linux/
+          cp scripts/run_prebuilt_test.sh artifact/BDFR_Initial_Test_Linux/
+          cp Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Linux/README.md
+          chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_cli
+          chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_initial_smoke_tests
+          chmod +x artifact/BDFR_Initial_Test_Linux/run_prebuilt_test.sh
 
       - name: Upload Linux initial test kit
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: BDFR_Initial_Test_Linux
-          path: |
-            build/bdfr_cli
-            build/bdfr_initial_smoke_tests
-            scripts/run_initial_test.sh
-            Docs/INITIAL_TEST.md
+          path: artifact/BDFR_Initial_Test_Linux
           if-no-files-found: error
