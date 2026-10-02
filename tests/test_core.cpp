@@ -15,6 +15,7 @@
 #include "bdfr/core/Retargeter.h"
 #include "bdfr/core/AutoMapper.h"
 #include "bdfr/speech/TextSpeech.h"
+#include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -539,6 +540,42 @@ int main() {
     const auto sampledSpeechPose = bdfr::speech::VisemeSynthesizer::sample(
         speechPlan, speechSampleTime);
     expect(!sampledSpeechPose.empty(), "SpeechFace timeline samples facial curves");
+
+
+
+    bdfr::runtime::FrameQueue frameQueue(2);
+    bdfr::FacialFrame q0; q0.timestampSeconds = 0.0;
+    bdfr::FacialFrame q1; q1.timestampSeconds = 1.0;
+    bdfr::FacialFrame q2; q2.timestampSeconds = 2.0;
+    frameQueue.push(q0);
+    frameQueue.push(q1);
+    frameQueue.push(q2);
+    expect(frameQueue.size() == 2, "bounded frame queue keeps capacity");
+    expect(frameQueue.droppedCount() == 1, "bounded frame queue counts dropped oldest frame");
+    bdfr::FacialFrame popped;
+    expect(frameQueue.pop(popped) && std::fabs(popped.timestampSeconds - 1.0) < 0.0001,
+           "frame queue drops oldest frame first");
+
+    bdfr::runtime::JitterBuffer jitter(0.1);
+    bdfr::FacialFrame j2; j2.timestampSeconds = 2.0;
+    bdfr::FacialFrame j1; j1.timestampSeconds = 1.0;
+    jitter.push(j2);
+    jitter.push(j1);
+    expect(jitter.popReady(1.05, popped) == false, "jitter buffer respects configured delay");
+    expect(jitter.popReady(1.11, popped) &&
+           std::fabs(popped.timestampSeconds - 1.0) < 0.0001,
+           "jitter buffer sorts and releases ready frame");
+
+    bdfr::runtime::ClockOffsetEstimator clock(0.5);
+    clock.observe(10.0, 10.2);
+    expect(clock.initialized(), "clock estimator initializes");
+    expect(std::fabs(clock.offsetSeconds() - 0.2) < 0.0001,
+           "clock estimator captures initial offset");
+    clock.observe(11.0, 11.4);
+    expect(std::fabs(clock.offsetSeconds() - 0.3) < 0.0001,
+           "clock estimator smooths offset changes");
+    expect(std::fabs(clock.remoteToLocal(20.0) - 20.3) < 0.0001,
+           "clock estimator converts remote timestamp");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
