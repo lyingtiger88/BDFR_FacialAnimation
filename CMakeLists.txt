@@ -25,6 +25,7 @@ add_library(bdfr_core
     src/Retargeter.cpp
     src/AutoMapper.cpp
     src/TextSpeech.cpp
+    src/DialogueMarkup.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
     src/Schema.cpp
