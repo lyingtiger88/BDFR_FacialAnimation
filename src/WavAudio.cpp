@@ -142,9 +142,9 @@ bool WavAudio::loadPcm16(const std::filesystem::path& path,
         return false;
     }
 
-    std::vector<std::uint8_t> bytes(
+    std::vector<std::uint8_t> bytes{
         std::istreambuf_iterator<char>(in),
-        std::istreambuf_iterator<char>());
+        std::istreambuf_iterator<char>()};
     if (!in.good() && !in.eof()) {
         if (error) *error = "failed while reading WAV file";
         return false;
