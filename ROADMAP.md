@@ -133,6 +133,8 @@ Both pipelines converge on a shared time-based facial representation before expr
 ### Goals
 - camera input
 - video-file input
+- desktop offline video-to-animation solve
+- Android prerecorded-video solve
 - face detection
 - landmarks
 - head pose
@@ -145,9 +147,12 @@ Both pipelines converge on a shared time-based facial representation before expr
 - normalized face observations
 - debug overlays
 - recording/replay system
+- Studio offline solver with full-sequence temporal context
+- mobile offline capture-analysis path
 
 ### Exit criteria
 - stable tracking on benchmark footage
+- prerecorded desktop/mobile video can be converted into editable BDFR facial curves
 - no severe frame-to-frame jitter under normal lighting
 
 ---
