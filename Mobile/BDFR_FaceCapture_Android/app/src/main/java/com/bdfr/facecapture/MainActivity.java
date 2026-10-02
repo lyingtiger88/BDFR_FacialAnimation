@@ -80,6 +80,8 @@ public final class MainActivity extends AppCompatActivity
         binding.importButton.setOnClickListener(v ->
                 videoPicker.launch(new String[] {"video/*"}));
 
+        binding.testPcButton.setOnClickListener(v -> sendPcDiagnosticPacket());
+
         initializeLiveTracker();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -162,6 +164,53 @@ public final class MainActivity extends AppCompatActivity
     }
 
 
+
+
+    private void sendPcDiagnosticPacket() {
+        String host = binding.hostInput.getText().toString().trim();
+        String portText = binding.portInput.getText().toString().trim();
+
+        if (host.isEmpty()) {
+            updateStatus("Enter the PC IP address first.");
+            return;
+        }
+
+        final int port;
+        try {
+            port = Integer.parseInt(portText);
+        } catch (NumberFormatException exception) {
+            updateStatus("Invalid UDP port.");
+            return;
+        }
+
+        analysisExecutor.execute(() -> {
+            try (LiveStreamClient client =
+                         new LiveStreamClient(host, port, "bdfr-android-test")) {
+
+                BdfrFacialFrame frame = new BdfrFacialFrame();
+                frame.timestampSeconds =
+                        SystemClock.elapsedRealtimeNanos() / 1_000_000_000.0;
+                frame.confidence = 1.0f;
+
+                frame.curves.put("jawOpen", 0.42f);
+                frame.curves.put("eyeBlinkLeft", 0.11f);
+                frame.curves.put("eyeBlinkRight", 0.13f);
+                frame.curves.put("mouthSmileLeft", 0.37f);
+                frame.curves.put("mouthSmileRight", 0.39f);
+                frame.curves.put("browInnerUp", 0.21f);
+
+                client.send(frame);
+
+                updateStatus(
+                        "Diagnostic BDFP packet sent to " +
+                        host + ":" + port);
+            } catch (Exception exception) {
+                updateStatus(
+                        "PC test failed: " +
+                        exception.getMessage());
+            }
+        });
+    }
 
     private void solveImportedVideo(android.net.Uri uri) {
         if (offlineVideoSolver == null) {
