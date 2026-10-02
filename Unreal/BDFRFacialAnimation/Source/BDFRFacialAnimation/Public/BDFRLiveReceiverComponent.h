@@ -9,6 +9,7 @@ class FBDFRLiveLinkSource;
 class FSocket;
 class FRunnableThread;
 class UBDFRFacialComponent;
+class USkeletalMeshComponent;
 class ILiveLinkClient;
 
 USTRUCT(BlueprintType)
@@ -83,6 +84,12 @@ public:
     bool bApplyToFacialComponent = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BDFR|Runtime")
+    bool bApplyToSkeletalMesh = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BDFR|Runtime")
+    TObjectPtr<USkeletalMeshComponent> TargetSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BDFR|Runtime")
     bool bAutoStart = true;
 
 private:
@@ -104,6 +111,7 @@ private:
     ILiveLinkClient* LiveLinkClient = nullptr;
 
     TWeakObjectPtr<UBDFRFacialComponent> CachedFacialComponent;
+    TWeakObjectPtr<USkeletalMeshComponent> CachedSkeletalMesh;
 
     mutable FCriticalSection StatsMutex;
     FBDFRLiveReceiverStats Stats;
