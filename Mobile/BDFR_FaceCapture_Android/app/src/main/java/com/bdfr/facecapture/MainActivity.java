@@ -35,6 +35,9 @@ public final class MainActivity extends AppCompatActivity
     private LiveStreamClient liveStreamClient;
     private boolean liveStreaming = false;
 
+    private BdfrSessionRecorder sessionRecorder;
+    private boolean recording = false;
+
     private long solvedFrameCount = 0;
     private long fpsWindowStartMs = 0;
     private double lastFps = 0.0;
@@ -63,9 +66,9 @@ public final class MainActivity extends AppCompatActivity
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        binding.recordButton.setOnClickListener(v ->
-                binding.statusText.setText(
-                        "Solved-frame recording is the next mobile integration slice."));
+        sessionRecorder = new BdfrSessionRecorder(this, "bdfr-android");
+
+        binding.recordButton.setOnClickListener(v -> toggleRecording());
 
         binding.liveButton.setOnClickListener(v -> toggleLiveStreaming());
 
@@ -157,6 +160,41 @@ public final class MainActivity extends AppCompatActivity
         }
     }
 
+
+    private void toggleRecording() {
+        if (sessionRecorder == null) {
+            sessionRecorder = new BdfrSessionRecorder(this, "bdfr-android");
+        }
+
+        if (!recording) {
+            sessionRecorder.reset();
+            recording = true;
+            binding.recordButton.setText("Stop Rec");
+            updateStatus("Recording solved BDFR facial frames.");
+            return;
+        }
+
+        recording = false;
+        binding.recordButton.setText("Record");
+
+        final int count = sessionRecorder.frameCount();
+        final String baseName =
+                "take_" + System.currentTimeMillis();
+
+        analysisExecutor.execute(() -> {
+            try {
+                java.io.File file = sessionRecorder.save(baseName);
+                updateStatus(
+                        "Saved " + count + " solved frames: " +
+                        file.getAbsolutePath());
+            } catch (IOException exception) {
+                updateStatus(
+                        "Unable to save recording: " +
+                        exception.getMessage());
+            }
+        });
+    }
+
     private void toggleLiveStreaming() {
         if (liveStreaming) {
             stopLiveStreaming();
@@ -223,6 +261,10 @@ public final class MainActivity extends AppCompatActivity
             fpsWindowStartMs = nowMs;
         }
 
+        if (recording && sessionRecorder != null && frame.confidence > 0.0f) {
+            sessionRecorder.append(frame);
+        }
+
         if (liveStreaming && liveStreamClient != null && frame.confidence > 0.0f) {
             liveStreamClient.send(frame);
         }
@@ -233,7 +275,10 @@ public final class MainActivity extends AppCompatActivity
                 frame.curves.size(),
                 frame.confidence,
                 lastFps,
-                liveStreaming ? "ON" : "OFF"));
+                liveStreaming ? "ON" : "OFF") +
+                (recording
+                        ? " | REC=" + sessionRecorder.frameCount()
+                        : ""));
     }
 
     @Override
@@ -252,6 +297,11 @@ public final class MainActivity extends AppCompatActivity
         if (liveTracker != null) {
             liveTracker.close();
             liveTracker = null;
+        }
+
+        if (sessionRecorder != null) {
+            sessionRecorder.close();
+            sessionRecorder = null;
         }
 
         analysisExecutor.shutdownNow();
