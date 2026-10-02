@@ -87,5 +87,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Test PC" />
+
+        <Button
+            android:id="@+id/modelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Get Model" />
     </LinearLayout>
 </LinearLayout>
