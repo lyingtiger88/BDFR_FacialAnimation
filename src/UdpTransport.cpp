@@ -216,10 +216,16 @@ bool UdpFrameReceiver::open(std::uint16_t port,
         return false;
     }
 
+#ifdef _WIN32
+    const int bindLength = static_cast<int>(sizeof(address));
+#else
+    const socklen_t bindLength = sizeof(address);
+#endif
+
     if (::bind(
             impl_->socket,
             reinterpret_cast<const sockaddr*>(&address),
-            static_cast<socklen_t>(sizeof(address))) != 0) {
+            bindLength) != 0) {
         if (error) *error = lastSocketError();
         close();
         return false;
