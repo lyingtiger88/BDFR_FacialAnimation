@@ -26,15 +26,15 @@ This roadmap tracks implementation status, not just planned scope.
 - [x] Partial re-solve dirty-range model
 - [x] Initial automated core tests
 - [x] GitHub Actions CI for Windows and Ubuntu
-- [~] M0 Foundation
-- [~] M1 FACS Core
-- [ ] M2 UE5 Runtime
-- [ ] M3 SpeechFace
-- [ ] M4 Expressive Speech
-- [ ] M5 FaceCapture
-- [ ] M6 Solver & Calibration
-- [ ] M7 Retargeting
-- [ ] M8 Real-Time Runtime
+- [~] M0 Foundation — core foundation largely implemented
+- [~] M1 FACS Core — expression/dynamics/tooling foundations implemented
+- [~] M2 UE5 Runtime — plugin skeleton + Blueprint curve component
+- [~] M3 SpeechFace — text/viseme/markup prototype
+- [~] M4 Expressive Speech — emotion/events/behavior/personality foundations
+- [~] M5 FaceCapture — capture contracts + Android camera/import skeleton
+- [~] M6 Solver & Calibration — calibration core + confidence contracts
+- [~] M7 Retargeting — generic retarget/auto-map/mocap fusion foundations
+- [~] M8 Real-Time Runtime — queue/jitter/clock/packet foundations
 - [~] M9 Quality Program
 - [ ] M10 AI Character Integration
 
@@ -46,15 +46,15 @@ BDFR Facial Animation is designed as a modular facial-performance platform.
 
 Planned first-class inputs:
 
-- [ ] Text
+- [x] Text
 - [ ] Prerecorded audio
 - [ ] Live microphone
 - [ ] Prerecorded video
 - [ ] Live camera
 - [ ] Live facial mocap
 - [ ] Imported facial mocap files
-- [ ] Android capture / live transfer
-- [ ] External curves / API streams
+- [~] Android capture / live transfer
+- [~] External curves / API streams
 
 All input paths must converge on the shared BDFR facial representation.
 
@@ -75,11 +75,11 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Establish initial dependency policy
 - [x] Establish initial coding rules
 - [x] Establish test/build conventions
-- [ ] Define logging standard
-- [ ] Define profiling standard
+- [x] Define logging standard
+- [x] Define profiling standard
 - [ ] Define benchmark asset conventions
 - [x] Define initial session/take metadata conventions
-- [ ] Define project-file/version migration policy
+- [~] Define project-file/version compatibility policy
 
 ## Deliverables
 
@@ -91,21 +91,21 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] GitHub CI
 - [x] Development documentation
 - [x] Testing documentation
-- [ ] JSON serialization/interchange
-- [ ] Sample facial-sequence files
+- [x] JSON serialization/interchange
+- [~] Programmatic sample facial sequences / test vectors
 - [x] Session/Take data model
-- [ ] Project persistence format
-- [ ] Undo/Redo transaction model
-- [ ] Crash recovery/autosave design
+- [x] Project persistence format
+- [x] Undo/Redo snapshot-history foundation
+- [x] Crash recovery/autosave snapshot foundation
 
 ## Exit criteria
 
 - [x] A facial frame can be serialized, loaded and validated
 - [x] Unit tests cover basic curve range validation
 - [x] Unit tests cover binary roundtrip
-- [ ] Unit tests cover schema migration/version compatibility
-- [ ] A complete facial sequence can be stored and replayed deterministically
-- [ ] Session/Take metadata survives save/load
+- [x] Unit tests cover schema compatibility classification
+- [x] A complete facial sequence can be stored, sampled and replayed deterministically
+- [x] Session/Take metadata survives save/load
 
 ---
 
@@ -120,15 +120,15 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Basic temporal smoothing
 - [x] Basic blending/layering
 - [x] Left/right curve support in registry
-- [ ] Full FACS registry and metadata
+- [~] Initial FACS/curve metadata catalog
 - [x] Region masks
 - [x] Layer priority
-- [ ] Additive/override policy per region
-- [ ] Curve constraints
-- [ ] Velocity/acceleration constraints
-- [ ] Pose-space correctives
-- [ ] Facial dynamics model
-- [ ] Region freeze
+- [x] Additive/override layers with region masks
+- [x] Curve constraints
+- [~] Velocity constraints
+- [~] Conditional corrective-rule foundation
+- [~] Per-curve dynamics foundation
+- [x] Region freeze
 - [x] Partial re-solve primitives
 
 ## Deliverables
@@ -138,14 +138,14 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Exponential smoothing
 - [x] Binary facial-frame codec
 - [x] Initial timeline types
-- [ ] Expression layer stack
+- [x] Expression layer stack
 - [x] Region mask system
 - [x] Priority resolver
-- [ ] Corrective-rule engine
-- [ ] Advanced temporal interpolation
-- [ ] JSON interchange
-- [ ] Golden deterministic codec vectors
-- [ ] Curve key reduction
+- [x] Corrective-rule engine
+- [~] Sequence linear interpolation + smoothing
+- [x] JSON interchange
+- [~] Deterministic little-endian codec/header tests
+- [x] Curve key reduction
 - [ ] Curve compression
 
 ## Timeline foundation
@@ -166,46 +166,46 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Track priority
 - [x] Track masks
 - [x] Basic clip blending
-- [ ] Non-destructive editing
+- [~] Non-destructive layer/history foundations
 - [ ] Curve editor
 - [ ] Snapping
 - [ ] Bezier/tangent editing
-- [ ] Key reduction
+- [x] Key reduction
 - [ ] Quality/confidence heatmap
 - [x] Partial range re-solve primitives
 
 ## Exit criteria
 
 - [x] Multiple curve layers can be mixed without invalid normalized values
-- [ ] Full expression layers can be evaluated over time
+- [~] Expression stack and timed Timeline curve evaluation
 - [x] Region-specific source fusion primitives work
-- [ ] Deterministic playback is verified across stored sequences
-- [ ] Corrective rules can resolve problematic expression combinations
+- [x] Deterministic sequence sampling/playback verified
+- [x] Conditional corrective rules resolve combined-expression cases
 
 ---
 
 # Milestone M2 — Unreal Engine 5 Runtime
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Goals
 
-- [ ] Create UE5 plugin
+- [x] Create UE5 plugin skeleton
 - [ ] Consume BDFR facial frames
 - [ ] Map curves to morph targets
 - [ ] Map curves to facial bones
 - [ ] Support prerecorded playback
 - [ ] Support live playback
-- [ ] Blueprint API
-- [ ] C++ API
+- [~] Blueprint curve API
+- [~] C++ component API
 - [ ] Live Link adapter
 - [ ] Debug visualization
 - [ ] Runtime profiling
 
 ## Deliverables
 
-- [ ] UE5 plugin skeleton
-- [ ] BDFR Facial Component
+- [x] UE5 plugin skeleton
+- [x] BDFR Facial Component
 - [ ] Curve receiver
 - [ ] Retarget profile asset
 - [ ] Test character profile
@@ -224,26 +224,26 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M3 — SpeechFace Prototype
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Input modes
 
 - [ ] Audio file
 - [ ] Live microphone
-- [ ] Text-only
+- [x] Text-only fallback prototype
 - [ ] Text + TTS timing
-- [ ] Text + performance markup
+- [x] Text + performance markup parser
 
 ## Goals
 
 - [ ] Speech segmentation
 - [ ] Phoneme timing
-- [ ] Viseme generation
-- [ ] Jaw/lip coordination
-- [ ] Context-aware coarticulation
+- [x] Viseme generation prototype
+- [~] Jaw/lip viseme pose coordination
+- [~] Neighbor-blend coarticulation prototype
 - [ ] Anticipatory articulation
-- [ ] Plosive closure handling
-- [ ] F/V handling
+- [~] MBP lip-closure prototype
+- [~] FV viseme prototype
 - [ ] Tongue approximation
 - [ ] Offline WAV processing
 - [ ] Multilingual phoneme profiles
@@ -251,10 +251,10 @@ All input paths must converge on the shared BDFR facial representation.
 ## Deliverables
 
 - [ ] Audio frontend
-- [ ] Text frontend
-- [ ] Phoneme timeline
-- [ ] Viseme solver
-- [ ] Coarticulation engine
+- [x] Text frontend
+- [~] Timed orthographic/viseme event timeline
+- [x] Viseme curve synthesizer prototype
+- [~] Neighbor blending prototype
 - [ ] TTS timing adapter
 - [ ] Curve export
 - [ ] Speaker profile
@@ -263,7 +263,7 @@ All input paths must converge on the shared BDFR facial representation.
 ## Exit criteria
 
 - [ ] Clean speech produces synchronized editable mouth animation
-- [ ] Text-only input can generate a timed facial-performance draft
+- [x] Text-only input can generate a timed facial-performance draft
 - [ ] Text+TTS path can produce tighter lip timing
 - [ ] Transitions are context-sensitive rather than pose switching
 
@@ -271,23 +271,23 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M4 — Expressive Speech & Performance
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Goals
 
 - [ ] Extract prosody
 - [ ] Estimate emphasis
 - [ ] Estimate pauses/breath events
-- [ ] Generate procedural full-face behavior
-- [ ] Emotion layering
-- [ ] Blink generation
-- [ ] Eye darts
-- [ ] Gaze behavior
-- [ ] Head nod/tilt/turn
-- [ ] Micro-expressions
+- [x] Generate procedural full-face behavior foundation
+- [x] Emotion layering/presets foundation
+- [x] Blink generation
+- [x] Eye-dart procedural foundation
+- [x] Gaze drift behavior foundation
+- [~] Procedural head yaw/pitch/roll foundation
+- [~] Instant micro-event foundation
 - [ ] Breathing cues
-- [ ] Performance style presets
-- [ ] Character personality profiles
+- [~] Personality/performance preset foundation
+- [x] Character personality profiles
 - [ ] Intent tags
 - [ ] Text + audio emotion fusion
 
@@ -295,26 +295,26 @@ All input paths must converge on the shared BDFR facial representation.
 
 - [ ] Prosody feature extractor
 - [ ] Emphasis events
-- [ ] Blink generator
-- [ ] Gaze/eye-dart generator
-- [ ] Head-motion generator
-- [ ] Micro-expression generator
-- [ ] Emotion system
+- [x] Blink generator
+- [x] Gaze/eye-dart generator foundation
+- [x] Head-motion generator foundation
+- [~] Instant event generator
+- [x] Emotion system foundation
 - [ ] Valence/Arousal support
-- [ ] Performance mixer
-- [ ] Personality profile format
+- [x] Performance fusion/mixer foundation
+- [x] Personality profile format
 
 ## Exit criteria
 
 - [ ] Speech-driven output includes believable full-face secondary motion
 - [ ] Behavior layers remain independently editable
-- [ ] Two personality profiles can produce different performances from identical dialogue
+- [x] Two personality profiles produce distinct deterministic behavior
 
 ---
 
 # Milestone M5 — FaceCapture Prototype
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Desktop live capture
 
@@ -322,7 +322,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Face detection
 - [ ] Facial landmarks
 - [ ] Dense face mesh
-- [ ] Head pose
+- [x] Mocap frame head-pose transport
 - [ ] Eye/eyelid tracking
 - [ ] Gaze estimation
 - [ ] Temporal tracking
@@ -339,23 +339,23 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Offline high-quality Studio mode
 - [ ] Partial clip re-solve
 - [ ] Region-specific re-solve
-- [ ] Bad-take detection
+- [~] Bad-take quality scoring foundation
 - [ ] Quality/confidence heatmap
 
 ## Android — BDFR FaceCapture Mobile
 
-- [ ] Android app skeleton
-- [ ] Front-camera capture
+- [x] Android app skeleton
+- [~] Front-camera CameraX preview
 - [ ] Live facial tracking
 - [ ] On-device solve
-- [ ] Prerecorded-video import
+- [x] Prerecorded-video picker/import entry point
 - [ ] Offline video-to-animation extraction
 - [ ] Record then solve
 - [ ] Local session storage
-- [ ] Live preview
+- [x] Live camera preview
 - [ ] FPS/confidence display
 - [ ] Actor calibration
-- [ ] Wi-Fi live transfer
+- [~] UDP live-stream client foundation
 - [ ] USB transfer mode
 - [ ] Remote Record/Stop
 - [ ] QR/pairing flow
@@ -365,15 +365,15 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Deliverables
 
-- [ ] Capture frontend
+- [~] Capture interfaces/contracts
 - [ ] Tracking pipeline
-- [ ] Normalized face observations
+- [x] Normalized FaceObservation contract
 - [ ] Debug overlays
 - [ ] Recording/replay system
 - [ ] Studio offline solver
 - [ ] Android capture-analysis path
-- [ ] Android live-stream protocol
-- [ ] Desktop/mobile clock sync
+- [x] Shared BDFR/BDFP binary packet protocol + Android encoder
+- [~] Clock-offset estimator foundation
 
 ## Exit criteria
 
@@ -387,32 +387,32 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M6 — Solver & Calibration
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Goals
 
 - [ ] Convert tracked observations to BDFR curves/FACS
-- [ ] Actor-specific calibration
-- [ ] Neutral reference
-- [ ] Range-of-motion calibration
-- [ ] Confidence-aware solve
+- [x] Actor-specific calibration normalization core
+- [x] Neutral reference in calibration ranges
+- [x] Range-of-motion normalization core
+- [~] Confidence-aware data/fusion foundation
 - [ ] Anatomical constraints
-- [ ] Natural asymmetry preservation
+- [~] Left/right independent curve/calibration support
 - [ ] Neutral drift correction
 - [ ] Adaptive solver
-- [ ] Speaker/actor profiles
+- [~] Actor profile + calibration/personality foundations
 - [ ] Depth-aware solving
 - [ ] Face mesh support
 
 ## Deliverables
 
-- [ ] Calibration profile
+- [x] Calibration profile
 - [ ] Solver
-- [ ] Confidence model
+- [~] Frame/region confidence contracts
 - [ ] Temporal regularization
-- [ ] Asymmetry support
+- [~] Independent left/right curve support
 - [ ] Drift correction
-- [ ] Region confidence
+- [x] Region-confidence observation model
 - [ ] Occlusion recovery
 - [ ] Calibration UI
 
@@ -427,46 +427,46 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M7 — Mocap, MetaHuman & Advanced Retargeting
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Live mocap input
 
-- [ ] UDP input
+- [~] Android UDP sender foundation input
 - [ ] TCP input
 - [ ] WebSocket input
 - [ ] OSC input
 - [ ] Unreal Live Link input
 - [ ] ARKit-style curves
-- [ ] Generic blendshape weights
-- [ ] FACS/AU streams
+- [~] Generic external-curve/blendshape adapter
+- [~] External curve to BDFR/FACS mapping foundation
 - [ ] Head pose
-- [ ] Gaze/eye data
-- [ ] Third-party adapter interface
+- [x] Mocap frame gaze transport
+- [x] Third-party live mocap adapter interface
 
 ## Mocap file import
 
 - [ ] CSV
-- [ ] JSON
+- [x] JSON
 - [ ] FBX animation curves
 - [ ] BVH where facial channels are available
 - [ ] ARKit curve files
 - [ ] Unreal curve exports
-- [ ] BDFR binary sessions
+- [x] BDFR binary sessions
 
 ## Retargeting
 
 - [ ] MetaHuman mapping profile
 - [ ] ARKit 52 compatibility profile
-- [ ] Arbitrary morph-target rigs
+- [~] Generic retarget profile core
 - [ ] Facial bone mapping
 - [ ] Retarget calibration UI
-- [ ] Auto mapping by curve/morph naming
-- [ ] Scale/Offset/Clamp
+- [x] Auto mapping by curve/morph naming foundation
+- [x] Scale/Bias/Clamp
 - [ ] Response curves
-- [ ] Invert/Dead zone
+- [x] Invert/Dead zone
 - [ ] Neutral offsets
 - [ ] Pose-space correctives
-- [ ] Character compatibility scanner
+- [x] Character compatibility scanner foundation
 - [ ] Auto retarget calibration
 - [ ] Retarget preview
 
@@ -475,8 +475,8 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Mocap + Audio
 - [ ] Mocap + Emotion
 - [ ] Mocap + Manual Override
-- [ ] Per-region source weighting
-- [ ] Per-region priorities
+- [x] Per-region source weighting
+- [x] Per-region priorities
 - [ ] Mocap fallback to Audio/Text when tracking fails
 
 ## Exit criteria
@@ -484,13 +484,13 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] One performance retargets to multiple characters with minimal edits
 - [ ] External live mocap can drive BDFR in real time
 - [ ] Imported mocap can be edited in the BDFR timeline
-- [ ] Region-level fusion works reliably
+- [~] Region-level fusion core is implemented and unit-tested
 
 ---
 
 # Milestone M8 — Real-Time Runtime
 
-**Status: [ ] Not started**
+**Status: [~] In progress**
 
 ## Goals
 
@@ -498,14 +498,14 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Live camera streaming
 - [ ] Live mocap streaming
 - [ ] Incremental inference
-- [ ] Thread-safe runtime
-- [ ] Bounded memory
+- [~] Thread-safe bounded frame queue foundation
+- [x] Bounded frame queue memory
 - [ ] Low latency
-- [ ] Jitter buffer
-- [ ] Packet-loss handling
-- [ ] Delay compensation
-- [ ] Clock synchronization
-- [ ] Network diagnostics
+- [x] Jitter buffer
+- [~] Sequence/drop accounting foundation
+- [~] Configurable jitter delay foundation
+- [~] Clock-offset estimator
+- [~] Drop counts + shared diagnostics primitives
 - [ ] Curve compression
 - [ ] Facial LOD
 - [ ] Network LOD
@@ -540,7 +540,7 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M9 — Quality, Testing & Production Tooling
 
-**Status: [~] Started**
+**Status: [~] In progress**
 
 ## Already implemented
 
@@ -566,16 +566,16 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Visual benchmark suite
 - [ ] Objective timing tests
 - [ ] Quality review workflow
-- [ ] Profiling framework
+- [x] Profiling primitives
 - [ ] Failure-mode catalog implementation
 - [ ] Performance Cleanup Assistant
 - [ ] Smart Cleanup
-- [ ] Automatic bad-take detection
-- [ ] Technical performance diagnostics
+- [~] Capture quality/bad-take scoring foundation
+- [~] Logging/timing diagnostics foundation
 - [ ] Take quality heatmap
 - [ ] A/B solver preview
-- [ ] Session Diff
-- [ ] RAW vs Filtered comparison
+- [~] Curve diff primitive
+- [~] Curve diff/freeze primitives
 - [ ] Source vs Retargeted comparison
 - [ ] Stress tests
 - [ ] Sanitizer CI
@@ -612,20 +612,20 @@ All input paths must converge on the shared BDFR facial representation.
 
 # Milestone M10 — AI Character Integration
 
-**Status: [ ] Not started**
+**Status: [~] Foundation only**
 
 ## Goals
 
 - [ ] TTS integration
 - [ ] LLM/NPC hooks
-- [ ] Emotion metadata input
+- [~] Emotion/markup metadata foundations
 - [ ] Intent metadata
 - [ ] Live conversational performance
 - [ ] Network transport
 - [ ] AI Performance Director
-- [ ] Character Personality Profiles
-- [ ] Gaze target metadata
-- [ ] Performance style metadata
+- [x] Character Personality Profiles
+- [x] Gaze target dialogue markup
+- [x] Performance style dialogue markup
 
 ## Example pipeline
 
@@ -665,49 +665,49 @@ These features span multiple milestones.
 
 ## Project / Session management
 
-- [ ] Project manager
-- [ ] Actor profiles
+- [~] Project model/persistence foundation
+- [~] Actor profile foundation
 - [~] Session model / manager foundation
 - [~] Take model / manager foundation
-- [ ] Scene/Shot metadata
+- [x] Scene/Shot metadata in Session
 - [ ] Multi-take comparison
 - [ ] Facial slate
 - [ ] Timecode
 - [ ] 24/25/30/50/60 fps workflows
-- [ ] Autosave
-- [ ] Crash recovery
+- [~] Rotating recovery snapshot foundation
+- [~] Recovery snapshot discovery foundation
 
 ## Editing
 
 - [ ] Professional curve editor
-- [ ] Undo/Redo
-- [ ] Non-destructive layers
+- [x] Undo/Redo snapshot-history foundation
+- [~] Expression/Timeline layering foundations
 - [x] Partial re-solve core ranges
-- [ ] Region freeze
+- [x] Region freeze
 - [ ] Smart cleanup
-- [ ] Key reduction
-- [ ] Curve optimization
+- [x] Key reduction
+- [~] Key-reduction optimization foundation
 - [ ] Pose library
-- [ ] Expression presets
-- [ ] Performance presets
+- [x] Emotion expression presets foundation
+- [~] Personality presets foundation
 
 ## Automation / SDK
 
-- [ ] C++ SDK
+- [~] Modular public C++ core API
 - [ ] Python API
 - [ ] Blueprint API
-- [ ] CLI/headless processing
+- [x] CLI/headless foundation
 - [ ] Batch processing
 - [ ] Plugin SDK
-- [ ] CaptureProvider interface
+- [x] IFaceTracker capture provider interface
 - [ ] FaceSolver provider interface
 - [ ] SpeechSolver provider interface
-- [ ] RetargetProvider interface
+- [~] Generic retarget profile API
 - [ ] RuntimeOutput interface
 
 ## DCC / export
 
-- [ ] UE5
+- [~] UE5 plugin skeleton
 - [ ] MetaHuman
 - [ ] ARKit
 - [ ] FBX animation curves
