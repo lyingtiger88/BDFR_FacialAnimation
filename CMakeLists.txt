@@ -29,6 +29,7 @@ add_library(bdfr_core
     src/WavAudio.cpp
     src/AudioFeatures.cpp
     src/Prosody.cpp
+    src/AudioBehavior.cpp
     src/DialogueMarkup.cpp
     src/DialogueCompiler.cpp
     src/LiveRuntime.cpp
