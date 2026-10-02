@@ -33,6 +33,7 @@ add_library(bdfr_core
     src/AudioBehavior.cpp
     src/DialogueMarkup.cpp
     src/DialogueCompiler.cpp
+    src/TranscriptTiming.cpp
     src/LiveRuntime.cpp
     src/ExternalMocap.cpp
     src/Schema.cpp
