@@ -3,6 +3,7 @@
 #include "bdfr/core/CurveRegistry.h"
 #include "bdfr/core/CorrectiveEngine.h"
 #include "bdfr/core/ExpressionStack.h"
+#include "bdfr/core/JsonCodec.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -253,6 +254,38 @@ int main() {
     expect(stack.setEnabled("Emotion", false), "expression layer can be disabled");
     const auto withoutEmotion = stack.evaluate();
     expect(withoutEmotion.find("AU12") == withoutEmotion.end(), "disabled expression layer is excluded");
+
+
+
+    const std::string frameJson = bdfr::JsonCodec::encodeFrame(valid);
+    bdfr::FacialFrame jsonFrame;
+    expect(bdfr::JsonCodec::decodeFrame(frameJson, jsonFrame, &error),
+           "JSON facial frame roundtrip decodes: " + error);
+    expect(std::fabs(jsonFrame.timestampSeconds - valid.timestampSeconds) < 0.000001,
+           "JSON frame timestamp preserved");
+    expect(near(jsonFrame.curves.at("AU12"), valid.curves.at("AU12")),
+           "JSON frame curve preserved");
+
+    const std::string sequenceJson = bdfr::JsonCodec::encodeSequence(sequence);
+    bdfr::FacialSequence decodedSequence;
+    expect(bdfr::JsonCodec::decodeSequence(sequenceJson, decodedSequence, &error),
+           "JSON sequence roundtrip decodes: " + error);
+    expect(decodedSequence.frames().size() == 2, "JSON sequence preserves frame count");
+    expect(near(decodedSequence.sample(0.5).curves.at("jawOpen"), 0.5F),
+           "decoded JSON sequence remains sampleable");
+
+    const std::string sessionJson = bdfr::JsonCodec::encodeSession(session);
+    bdfr::Session decodedSession;
+    expect(bdfr::JsonCodec::decodeSession(sessionJson, decodedSession, &error),
+           "JSON session roundtrip decodes: " + error);
+    expect(decodedSession.id == session.id, "JSON session id preserved");
+    expect(decodedSession.takes.size() == 1, "JSON session preserves take count");
+    expect(decodedSession.takes[0].dirtyRanges.size() == 1,
+           "JSON session preserves merged dirty range");
+
+    bdfr::FacialFrame malformedFrame;
+    expect(!bdfr::JsonCodec::decodeFrame("{not valid json}", malformedFrame, &error),
+           "malformed JSON frame rejected");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
