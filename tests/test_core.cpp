@@ -25,6 +25,7 @@
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
+#include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Schema.h"
@@ -1098,6 +1099,28 @@ int main() {
     expect(foundCueBlink, "audio behavior planner creates blink from pause");
     expect(foundCueBreath, "audio behavior planner creates breath from long pause");
     expect(foundCueNod, "audio behavior planner creates head nod from emphasis");
+
+
+
+    std::vector<bdfr::mocap::MocapPacket> sessionPackets = {packet, packet};
+    sessionPackets[1].sequenceNumber = 43;
+    sessionPackets[1].frame.timestampSeconds = 2.6;
+    sessionPackets[1].frame.curves["jawOpen"] = 0.5F;
+
+    const auto sessionBytes =
+        bdfr::runtime::SessionStream::encode(sessionPackets);
+    expect(sessionBytes.size() > packetBytes.size(),
+           "BDFS session stream stores multiple BDFP packets");
+
+    std::vector<bdfr::mocap::MocapPacket> decodedSessionPackets;
+    expect(bdfr::runtime::SessionStream::decode(
+               sessionBytes, decodedSessionPackets, &error),
+           "BDFS recorded session roundtrip decodes: " + error);
+    expect(decodedSessionPackets.size() == 2,
+           "BDFS session preserves packet count");
+    expect(decodedSessionPackets[1].sequenceNumber == 43 &&
+           near(decodedSessionPackets[1].frame.curves.at("jawOpen"), 0.5F),
+           "BDFS session preserves frame metadata and curves");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
