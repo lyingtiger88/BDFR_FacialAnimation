@@ -29,6 +29,7 @@ add_library(bdfr_core
     src/ExternalMocap.cpp
     src/Schema.cpp
     src/Recovery.cpp
+    src/EmotionEngine.cpp
     src/FramePacketCodec.cpp
 )
 
