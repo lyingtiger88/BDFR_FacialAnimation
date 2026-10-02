@@ -141,6 +141,19 @@ int main() {
     expect(fullResult.sequence.frames().size() == 5,
            "full offline solve preserves complete timing");
 
+
+
+    const auto studioFiltered =
+        bdfr::SequenceFilter::bidirectionalExponential(
+            fullResult.sequence, 0.4F);
+    expect(studioFiltered.frames().size() ==
+           fullResult.sequence.frames().size(),
+           "Studio bidirectional smoothing preserves frame count");
+    expect(std::fabs(
+               studioFiltered.frames()[2].timestampSeconds -
+               fullResult.sequence.frames()[2].timestampSeconds) < 0.000001,
+           "Studio smoothing preserves source timestamps");
+
     if (failures == 0) {
         std::cout << "All BDFR offline pipeline tests passed.\n";
         return EXIT_SUCCESS;
