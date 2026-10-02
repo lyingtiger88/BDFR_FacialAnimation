@@ -23,6 +23,7 @@
 #include "bdfr/core/Recovery.h"
 #include "bdfr/expression/EmotionEngine.h"
 #include "bdfr/core/PerformanceFusion.h"
+#include "bdfr/core/Calibration.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -743,6 +744,23 @@ int main() {
            "fusion keeps speech-owned jaw region");
     expect(near(fusedPerformance.at("eyeBlinkLeft"), 0.9F),
            "fusion keeps mocap-owned eye region");
+
+
+
+    bdfr::CalibrationProfile calibration;
+    calibration.actorId = "actor_001";
+    calibration.name = "Actor Calibration";
+    expect(calibration.setRange("jawOpen", {0.2F, 0.1F, 0.9F, false}),
+           "calibration range accepted");
+    expect(!calibration.setRange("badRange", {0.5F, 0.8F, 0.2F, false}),
+           "invalid calibration range rejected");
+    expect(near(calibration.normalizeValue("jawOpen", 0.2F), 0.0F),
+           "calibration neutral maps to zero");
+    expect(near(calibration.normalizeValue("jawOpen", 0.9F), 1.0F),
+           "calibration maximum maps to one");
+    expect(calibration.normalizeValue("jawOpen", 0.55F) > 0.49F &&
+           calibration.normalizeValue("jawOpen", 0.55F) < 0.51F,
+           "calibration maps intermediate value proportionally");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
