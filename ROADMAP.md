@@ -26,8 +26,10 @@ This roadmap tracks implementation status, not just planned scope.
 - [x] Partial re-solve dirty-range model
 - [x] Initial automated core tests
 - [x] GitHub Actions CI for Windows and Ubuntu
-- [~] Android CI build/test workflow
-- [~] M0 Foundation — core foundation largely implemented
+- [x] Initial end-to-end smoke test
+- [~] Prebuilt Windows/Linux initial-test artifacts
+- [x] Android CI build/test workflow
+- [x] M0 Foundation — initial test-ready core foundation
 - [~] M1 FACS Core — expression/dynamics/tooling foundations implemented
 - [~] M2 UE5 Runtime — plugin skeleton + Blueprint curve component
 - [~] M3 SpeechFace — text/viseme/markup prototype
@@ -48,13 +50,13 @@ BDFR Facial Animation is designed as a modular facial-performance platform.
 Planned first-class inputs:
 
 - [x] Text
-- [ ] Prerecorded audio
+- [~] Prerecorded audio — PCM16 WAV + features/prosody/pitch foundation
 - [ ] Live microphone
-- [ ] Prerecorded video
-- [ ] Live camera
-- [ ] Live facial mocap
-- [ ] Imported facial mocap files
-- [~] Android capture / live transfer
+- [~] Prerecorded video — Android VIDEO solve + provider-driven desktop pipeline
+- [~] Live camera — Android CameraX + MediaPipe live path
+- [~] Live facial mocap — UDP/BDFP adapter/runtime foundation
+- [~] Imported facial mocap — CSV/JSON/BDFS foundations
+- [x] Android capture / live transfer foundation
 - [~] External curves / API streams
 
 All input paths must converge on the shared BDFR facial representation.
@@ -193,13 +195,13 @@ All input paths must converge on the shared BDFR facial representation.
 
 - [x] Create UE5 plugin skeleton
 - [ ] Consume BDFR facial frames
-- [ ] Map curves to morph targets
+- [~] Map curves to morph targets — direct SkeletalMesh morph application
 - [ ] Map curves to facial bones
 - [ ] Support prerecorded playback
 - [ ] Support live playback
 - [~] Blueprint curve API
 - [~] C++ component API
-- [ ] Live Link adapter
+- [~] Live Link adapter — Basic Role source foundation
 - [ ] Debug visualization
 - [ ] Runtime profiling
 
@@ -208,10 +210,10 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] UE5 plugin skeleton
 - [x] BDFR Facial Component
 - [ ] Curve receiver
-- [ ] Retarget profile asset
+- [x] Retarget profile asset
 - [ ] Test character profile
 - [ ] Debug UI
-- [ ] Live Link source
+- [~] Live Link source foundation
 - [ ] Runtime stats panel
 
 ## Exit criteria
@@ -232,13 +234,13 @@ All input paths must converge on the shared BDFR facial representation.
 - [~] Audio file — PCM16 WAV frontend + features/prosody foundation
 - [ ] Live microphone
 - [x] Text-only fallback prototype
-- [ ] Text + TTS timing
+- [~] Text + audio/TTS timing provider foundation
 - [x] Text + performance markup parser
 
 ## Goals
 
 - [~] Speech activity / silence segmentation foundation
-- [ ] Phoneme timing
+- [~] Provider contracts + transcript-duration timing foundation
 - [x] Viseme generation prototype
 - [~] Jaw/lip viseme pose coordination
 - [~] Neighbor-blend coarticulation prototype
@@ -247,19 +249,19 @@ All input paths must converge on the shared BDFR facial representation.
 - [~] FV viseme prototype
 - [ ] Tongue approximation
 - [ ] Offline WAV processing
-- [ ] Multilingual phoneme profiles
+- [x] English + Persian bootstrap language profiles
 
 ## Deliverables
 
-- [ ] Audio frontend
+- [x] PCM16 WAV audio frontend
 - [x] Text frontend
 - [~] Timed orthographic/viseme event timeline
 - [x] Viseme curve synthesizer prototype
 - [~] Neighbor blending prototype
-- [ ] TTS timing adapter
+- [~] TTS timing provider interface
 - [ ] Curve export
 - [ ] Speaker profile
-- [ ] Language profile
+- [x] Language profile system
 
 ## Exit criteria
 
@@ -276,7 +278,7 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Goals
 
-- [ ] Extract prosody
+- [~] Energy/ZCR + pitch/F0 prosody foundation
 - [x] Energy-based emphasis candidate foundation
 - [~] Pause/breath cue foundation
 - [x] Generate procedural full-face behavior foundation
@@ -341,30 +343,30 @@ All input paths must converge on the shared BDFR facial representation.
 - [~] Partial time-range re-solve primitives
 - [~] Region freeze + dirty-range foundations
 - [~] Bad-take quality scoring foundation
-- [ ] Quality/confidence heatmap
+- [~] Sequence diagnostics/per-frame quality foundations
 
 ## Android — BDFR FaceCapture Mobile
 
 Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 52 blendshape output.
 
 - [x] Android app skeleton
-- [~] Front-camera CameraX preview
+- [x] Front-camera CameraX preview + analysis
 - [x] MediaPipe LIVE_STREAM face tracking path
 - [x] MediaPipe on-device 52-blendshape solve foundation
 - [x] Prerecorded-video picker/import entry point
-- [~] VIDEO-mode MediaPipe + offline pipeline foundation
-- [~] Solved-frame recording + prerecorded-video import foundations
+- [x] VIDEO-mode MediaPipe offline solve foundation
+- [x] Solved-frame BDFS recording + prerecorded-video import foundation
 - [x] Local BDFS solved-session recording
 - [x] Live camera preview
 - [x] Live FPS/confidence/status display
 - [ ] Actor calibration
-- [~] UDP live-stream client foundation
+- [x] UDP live-stream client foundation
 - [ ] USB transfer mode
 - [ ] Remote Record/Stop
 - [ ] QR/pairing flow
 - [ ] Send video to PC for high-quality solve
-- [~] BDFR solved-curve packet streaming
-- [~] BDFS session format compatible with desktop
+- [x] BDFR solved-curve packet streaming foundation
+- [x] BDFS session format compatible with desktop
 
 ## Deliverables
 
@@ -372,11 +374,11 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [~] MediaPipe Android provider + desktop provider interfaces
 - [x] Normalized FaceObservation contract
 - [ ] Debug overlays
-- [~] BDFS recorded solved-session stream
+- [x] BDFS recorded solved-session stream
 - [~] Offline processor + sequence filter foundation
 - [x] CameraX → MediaPipe live analysis path
 - [x] Shared BDFR/BDFP binary packet protocol + Android encoder
-- [~] Clock-offset estimator foundation
+- [x] Clock-offset estimator foundation
 
 ## Exit criteria
 
@@ -401,7 +403,7 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [~] Confidence-aware data/fusion foundation
 - [ ] Anatomical constraints
 - [~] Left/right independent curve/calibration support
-- [ ] Neutral drift correction
+- [x] Neutral drift correction
 - [ ] Adaptive solver
 - [~] Actor profile + calibration/personality foundations
 - [ ] Depth-aware solving
@@ -414,7 +416,7 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [~] Frame/region confidence contracts
 - [ ] Temporal regularization
 - [~] Independent left/right curve support
-- [ ] Drift correction
+- [x] Drift correction
 - [x] Region-confidence observation model
 - [ ] Occlusion recovery
 - [ ] Calibration UI
@@ -439,20 +441,20 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [ ] WebSocket input
 - [ ] OSC input
 - [ ] Unreal Live Link input
-- [ ] ARKit-style curves
+- [x] ARKit-style 52-curve interoperability profile
 - [~] Generic external-curve/blendshape adapter
 - [~] External curve to BDFR/FACS mapping foundation
-- [ ] Head pose
+- [~] Head pose transport foundation
 - [x] Mocap frame gaze transport
 - [x] Third-party live mocap adapter interface
 
 ## Mocap file import
 
-- [ ] CSV
+- [x] CSV
 - [x] JSON
 - [ ] FBX animation curves
 - [ ] BVH where facial channels are available
-- [ ] ARKit curve files
+- [~] ARKit curve CSV/interchange foundation
 - [ ] Unreal curve exports
 - [x] BDFR binary sessions
 
@@ -465,19 +467,19 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [ ] Retarget calibration UI
 - [x] Auto mapping by curve/morph naming foundation
 - [x] Scale/Bias/Clamp
-- [ ] Response curves
+- [~] Curve tuning response exponent foundation
 - [x] Invert/Dead zone
-- [ ] Neutral offsets
-- [ ] Pose-space correctives
+- [~] Calibration/tuning neutral-offset foundations
+- [~] Corrective-rule foundation
 - [x] Character compatibility scanner foundation
 - [ ] Auto retarget calibration
 - [~] UE SkeletalMesh morph application path
 
 ## Mocap fusion
 
-- [ ] Mocap + Audio
-- [ ] Mocap + Emotion
-- [ ] Mocap + Manual Override
+- [~] Per-region PerformanceFusion foundation
+- [~] Per-region PerformanceFusion foundation
+- [~] Timeline/manual override + fusion foundations
 - [x] Per-region source weighting
 - [x] Per-region priorities
 - [ ] Mocap fallback to Audio/Text when tracking fails
@@ -523,7 +525,7 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [ ] WebSocket
 - [ ] OSC
 - [ ] Shared memory
-- [ ] Unreal Live Link bridge
+- [~] Unreal Live Link Basic Role source foundation
 
 ## Initial performance targets
 
@@ -562,10 +564,14 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [x] Layer-priority tests
 - [x] Session/Take tests
 - [x] Partial re-solve range tests
+- [x] Sequence comparison tests
+- [x] UDP live-receiver loopback integration test
+- [x] BDFS record/replay tests
+- [x] Android unit/build CI
 
 ## Remaining quality systems
 
-- [~] Multiple unit/integration harnesses
+- [x] Multiple unit/integration harnesses + end-to-end initial smoke test
 - [ ] Visual benchmark suite
 - [ ] Objective timing tests
 - [ ] Quality review workflow
@@ -580,9 +586,9 @@ Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 5
 - [~] Curve diff primitive
 - [~] Curve diff/freeze primitives
 - [~] Retarget compatibility + Curve diff foundations
-- [ ] Stress tests
+- [~] Initial stream/session integration tests
 - [ ] Sanitizer CI
-- [~] Session-stream tests
+- [x] Session-stream tests
 
 ## Benchmark categories
 
@@ -673,10 +679,10 @@ These features span multiple milestones.
 - [~] Session model / manager foundation
 - [~] Take model / manager foundation
 - [x] Scene/Shot metadata in Session
-- [ ] Multi-take comparison
+- [~] SequenceCompare quantitative foundation
 - [ ] Facial slate
-- [ ] Timecode
-- [ ] 24/25/30/50/60 fps workflows
+- [x] Timecode foundation
+- [x] Core frame-rate support for 24/25/30/50/60 + NTSC rationals
 - [~] Rotating recovery snapshot foundation
 - [~] Recovery snapshot discovery foundation
 
@@ -703,8 +709,8 @@ These features span multiple milestones.
 - [ ] Batch processing
 - [ ] Plugin SDK
 - [x] IFaceTracker capture provider interface
-- [ ] FaceSolver provider interface
-- [ ] SpeechSolver provider interface
+- [x] IFaceSolver provider interface
+- [~] Speech provider interfaces for G2P/alignment/TTS/audio phonemes
 - [~] Generic retarget profile API
 - [ ] RuntimeOutput interface
 
@@ -712,20 +718,20 @@ These features span multiple milestones.
 
 - [~] UE5 plugin skeleton
 - [ ] MetaHuman
-- [ ] ARKit
+- [x] ARKit52 curve interoperability profile
 - [ ] FBX animation curves
 - [ ] Blender
 - [ ] Maya
-- [ ] JSON
-- [ ] CSV
+- [x] JSON
+- [x] CSV
 - [x] BDFR frame + BDFP packet + BDFS session binary formats
 
 ## Model management
 
-- [ ] Model manager
-- [ ] Model versioning
-- [ ] Model checksums
-- [ ] License tracking
+- [~] ModelRegistry manifest foundation
+- [x] Model manifest version tracking
+- [x] Model manifest SHA-256 field
+- [x] Model manifest license/provenance fields
 - [ ] CPU backend selection
 - [ ] GPU backend selection
 - [ ] NPU backend selection where available
