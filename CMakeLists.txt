@@ -43,6 +43,8 @@ add_library(bdfr_core
     src/Personality.cpp
     src/FaceObservation.cpp
     src/CaptureQuality.cpp
+    src/OfflineVideoProcessor.cpp
+    src/SequenceFilter.cpp
     src/FramePacketCodec.cpp
     src/UdpTransport.cpp
 )
@@ -69,3 +71,8 @@ add_test(NAME bdfr_cli_text COMMAND bdfr_cli text "Hello world")
 if(WIN32)
     target_link_libraries(bdfr_core PRIVATE ws2_32)
 endif()
+
+
+add_executable(bdfr_offline_pipeline_tests tests/test_offline_pipeline.cpp)
+target_link_libraries(bdfr_offline_pipeline_tests PRIVATE bdfr_core)
+add_test(NAME bdfr_offline_pipeline_tests COMMAND bdfr_offline_pipeline_tests)
