@@ -1,0 +1,13 @@
+build/
+out/
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.VC.db
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
