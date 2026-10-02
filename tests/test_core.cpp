@@ -618,6 +618,24 @@ int main() {
     expect(!bdfr::runtime::FramePacketCodec::decode(badPacketBytes, decodedPacket),
            "truncated live packet is rejected");
 
+
+
+    expect(encoded.size() >= 6 &&
+           encoded[0] == static_cast<std::uint8_t>('B') &&
+           encoded[1] == static_cast<std::uint8_t>('D') &&
+           encoded[2] == static_cast<std::uint8_t>('F') &&
+           encoded[3] == static_cast<std::uint8_t>('R') &&
+           encoded[4] == 1 && encoded[5] == 0,
+           "binary codec uses deterministic little-endian BDFR header");
+
+    expect(packetBytes.size() >= 6 &&
+           packetBytes[0] == static_cast<std::uint8_t>('B') &&
+           packetBytes[1] == static_cast<std::uint8_t>('D') &&
+           packetBytes[2] == static_cast<std::uint8_t>('F') &&
+           packetBytes[3] == static_cast<std::uint8_t>('P') &&
+           packetBytes[4] == 1 && packetBytes[5] == 0,
+           "live packet uses deterministic little-endian BDFP header");
+
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
         return EXIT_SUCCESS;
