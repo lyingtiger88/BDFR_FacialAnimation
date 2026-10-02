@@ -24,3 +24,28 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+
+
+      - name: Upload Windows initial test kit
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BDFR_Initial_Test_Windows
+          path: |
+            build/Release/bdfr_cli.exe
+            build/Release/bdfr_initial_smoke_tests.exe
+            scripts/run_initial_test.ps1
+            Docs/INITIAL_TEST.md
+          if-no-files-found: error
+
+      - name: Upload Linux initial test kit
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BDFR_Initial_Test_Linux
+          path: |
+            build/bdfr_cli
+            build/bdfr_initial_smoke_tests
+            scripts/run_initial_test.sh
+            Docs/INITIAL_TEST.md
+          if-no-files-found: error
