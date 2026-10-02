@@ -33,6 +33,7 @@ add_library(bdfr_core
     src/PerformanceFusion.cpp
     src/Calibration.cpp
     src/BehaviorEngine.cpp
+    src/Personality.cpp
     src/FaceObservation.cpp
     src/CaptureQuality.cpp
     src/FramePacketCodec.cpp
