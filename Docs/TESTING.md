@@ -28,6 +28,15 @@ The bootstrap suite checks:
 - Instant Event clips
 - Mocap track clips
 - timeline validation and duration
+- timeline evaluation at time
+- Mute and Solo behavior
+- track/clip priority ordering
+- facial-region masks
+- region-specific curve fusion
+- Session/Take model
+- duplicate Take rejection
+- partial re-solve dirty ranges
+- dirty-range merging
 
 ## CI
 
