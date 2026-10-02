@@ -37,6 +37,7 @@
 #include "bdfr/expression/EmotionEngine.h"
 #include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Calibration.h"
+#include "bdfr/core/NeutralDrift.h"
 #include "bdfr/core/CurveTuning.h"
 #include "bdfr/expression/BehaviorEngine.h"
 #include "bdfr/expression/Personality.h"
@@ -1266,6 +1267,40 @@ int main() {
     expect(persianProfile.mapPhoneme("sh") ==
                bdfr::speech::Viseme::CHSH,
            "Persian profile maps sh articulation group");
+
+
+
+    bdfr::NeutralDriftOptions driftOptions;
+    driftOptions.baselineAlpha = 0.5F;
+    driftOptions.neutralThreshold = 0.2F;
+    driftOptions.maximumCorrection = 0.15F;
+
+    bdfr::NeutralDriftCorrector driftCorrector(driftOptions);
+
+    for (int i = 0; i < 8; ++i) {
+        driftCorrector.process(
+            {{"jawOpen", 0.10F}},
+            1.0F);
+    }
+
+    const auto correctedNeutral =
+        driftCorrector.process(
+            {{"jawOpen", 0.10F}},
+            1.0F);
+
+    expect(correctedNeutral.at("jawOpen") < 0.02F,
+           "neutral drift corrector removes persistent neutral offset");
+
+    const auto correctedExpression =
+        driftCorrector.process(
+            {{"jawOpen", 0.80F}},
+            1.0F);
+
+    expect(correctedExpression.at("jawOpen") > 0.65F,
+           "neutral drift corrector preserves strong active expression");
+
+    expect(driftCorrector.baseline().at("jawOpen") <= 0.15F,
+           "neutral drift baseline respects correction limit");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
