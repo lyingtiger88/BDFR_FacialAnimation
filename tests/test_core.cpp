@@ -28,6 +28,7 @@
 #include "bdfr/expression/EmotionEngine.h"
 #include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Calibration.h"
+#include "bdfr/core/CurveTuning.h"
 #include "bdfr/expression/BehaviorEngine.h"
 #include "bdfr/expression/Personality.h"
 #include "bdfr/capture/FaceObservation.h"
@@ -958,6 +959,35 @@ int main() {
            near(arkitMapped.at("eyeBlinkLeft"), 0.4F) &&
            near(arkitMapped.at("tongueOut"), 0.2F),
            "ARKit identity retarget preserves normalized curves");
+
+
+
+    bdfr::CurveTuningProfile tuning;
+    tuning.name = "Actor/Rig Tuning";
+    expect(tuning.setRule("jawOpen", {
+               0.10F, 0.90F,
+               1.10F, 0.0F,
+               1.0F, 0.10F,
+               0.0F, 1.0F}),
+           "curve tuning accepts valid shaping rule");
+    expect(!tuning.setRule("bad", {
+               1.0F, 0.0F,
+               1.0F, 0.0F,
+               1.0F, 0.0F,
+               0.0F, 1.0F}),
+           "curve tuning rejects inverted input range");
+
+    const float tunedNeutral = tuning.applyValue("jawOpen", 0.10F);
+    expect(near(tunedNeutral, 0.0F),
+           "curve tuning maps input minimum to zero");
+    const float tunedMid = tuning.applyValue("jawOpen", 0.50F);
+    expect(tunedMid > 0.40F && tunedMid < 0.60F,
+           "curve tuning shapes intermediate values");
+    const auto tunedMap = tuning.apply({{"jawOpen", 0.90F}, {"AU12", 0.25F}});
+    expect(near(tunedMap.at("jawOpen"), 1.0F),
+           "curve tuning applies gain and output clamp");
+    expect(near(tunedMap.at("AU12"), 0.25F),
+           "untuned curves pass through normalized");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
