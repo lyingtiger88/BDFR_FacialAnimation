@@ -19,6 +19,7 @@ add_library(bdfr_core
     src/CurveDynamics.cpp
     src/KeyReducer.cpp
     src/Project.cpp
+    src/ModelRegistry.cpp
     src/CurveCatalog.cpp
     src/CurveTools.cpp
     src/Diagnostics.cpp
