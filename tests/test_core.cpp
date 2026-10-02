@@ -400,6 +400,34 @@ int main() {
     expect(curveDiff.find("jawOpen") != curveDiff.end(), "curve diff reports meaningful change");
     expect(curveDiff.find("AU12") == curveDiff.end(), "curve diff filters below threshold");
 
+
+
+    bdfr::Project persistedProject;
+    persistedProject.name = "Persistent Project";
+    persistedProject.addActor({"actor_persist", "Persistent Actor", "notes"});
+    bdfr::Session persistedSession;
+    persistedSession.id = "persist_session";
+    persistedSession.project = "Persistent Project";
+    persistedSession.scene = "SceneA";
+    persistedSession.shot = "ShotA";
+    bdfr::Take persistedTake;
+    persistedTake.id = "persist_take";
+    persistedTake.name = "Take A";
+    persistedTake.actorId = "actor_persist";
+    persistedTake.source = "video";
+    persistedTake.durationSeconds = 5.0;
+    persistedSession.addTake(persistedTake);
+    persistedProject.addSession(persistedSession);
+
+    const std::string projectJson = bdfr::JsonCodec::encodeProject(persistedProject);
+    bdfr::Project decodedProject;
+    expect(bdfr::JsonCodec::decodeProject(projectJson, decodedProject, &error),
+           "JSON project roundtrip decodes: " + error);
+    expect(decodedProject.name == persistedProject.name, "JSON project name preserved");
+    expect(decodedProject.actors.size() == 1, "JSON project actor preserved");
+    expect(decodedProject.sessions.size() == 1, "JSON project session preserved");
+    expect(decodedProject.sessions[0].takes.size() == 1, "JSON project take preserved");
+
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
         return EXIT_SUCCESS;
