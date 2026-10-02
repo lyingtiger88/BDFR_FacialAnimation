@@ -6,6 +6,8 @@
 #include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/JsonCodec.h"
 #include "bdfr/core/KeyReducer.h"
+#include "bdfr/core/History.h"
+#include "bdfr/core/Project.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -336,6 +338,38 @@ int main() {
     expect(reducedShaped.size() > 2, "nonlinear curve preserves shape keys");
     expect(bdfr::KeyReducer::maxError(shapedKeys, reducedShaped) <= 0.051F,
            "nonlinear reduction remains within tolerance");
+
+
+
+    bdfr::Project project;
+    project.name = "BDFR Demo";
+    expect(project.addActor({"actor_001", "Test Actor", "baseline profile"}),
+           "project actor added");
+    expect(!project.addActor({"actor_001", "Duplicate", ""}),
+           "duplicate actor rejected");
+    expect(project.findActor("actor_001") != nullptr, "project actor lookup works");
+
+    bdfr::Session projectSession;
+    projectSession.id = "session_project_001";
+    projectSession.project = "BDFR Demo";
+    expect(project.addSession(projectSession), "project session added");
+    expect(!project.addSession(projectSession), "duplicate project session rejected");
+    expect(project.findSession("session_project_001") != nullptr, "project session lookup works");
+
+    bdfr::SnapshotHistory<bdfr::CurveMap> history(3);
+    history.reset({{"jawOpen", 0.1F}});
+    history.push({{"jawOpen", 0.4F}});
+    history.push({{"jawOpen", 0.8F}});
+    expect(history.canUndo(), "history can undo");
+    const auto* undoState = history.undo();
+    expect(undoState != nullptr && near(undoState->at("jawOpen"), 0.4F),
+           "history undo restores previous snapshot");
+    expect(history.canRedo(), "history can redo");
+    const auto* redoState = history.redo();
+    expect(redoState != nullptr && near(redoState->at("jawOpen"), 0.8F),
+           "history redo restores next snapshot");
+    history.push({{"jawOpen", 0.6F}});
+    expect(!history.canRedo(), "new edit invalidates redo branch");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
