@@ -17,6 +17,7 @@ add_library(bdfr_core
     src/JsonCodec.cpp
     src/CurveDynamics.cpp
     src/KeyReducer.cpp
+    src/Project.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
