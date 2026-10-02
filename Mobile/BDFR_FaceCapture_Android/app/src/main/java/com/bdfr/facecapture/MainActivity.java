@@ -37,6 +37,7 @@ public final class MainActivity extends AppCompatActivity
 
     private BdfrSessionRecorder sessionRecorder;
     private boolean recording = false;
+    private OfflineVideoSolver offlineVideoSolver;
 
     private long solvedFrameCount = 0;
     private long fpsWindowStartMs = 0;
@@ -45,8 +46,7 @@ public final class MainActivity extends AppCompatActivity
     private final ActivityResultLauncher<String[]> videoPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
                 if (uri != null) {
-                    binding.statusText.setText("Video selected: " + uri);
-                    // The URI is ready for the VIDEO-mode offline provider.
+                    solveImportedVideo(uri);
                 }
             });
 
@@ -67,6 +67,7 @@ public final class MainActivity extends AppCompatActivity
         setContentView(binding.getRoot());
 
         sessionRecorder = new BdfrSessionRecorder(this, "bdfr-android");
+        offlineVideoSolver = new OfflineVideoSolver(this);
 
         binding.recordButton.setOnClickListener(v -> toggleRecording());
 
@@ -160,6 +161,53 @@ public final class MainActivity extends AppCompatActivity
         }
     }
 
+
+
+    private void solveImportedVideo(android.net.Uri uri) {
+        if (offlineVideoSolver == null) {
+            offlineVideoSolver = new OfflineVideoSolver(this);
+        }
+
+        updateStatus("Offline video solve started.");
+
+        offlineVideoSolver.solve(
+                uri,
+                33L,
+                new OfflineVideoSolver.Listener() {
+                    @Override
+                    public void onProgress(
+                            int solvedFrames,
+                            long positionMs,
+                            long durationMs) {
+                        double percent = durationMs <= 0
+                                ? 0.0
+                                : positionMs * 100.0 / durationMs;
+
+                        updateStatus(String.format(
+                                Locale.US,
+                                "Offline solve %.1f%% | solved=%d",
+                                percent,
+                                solvedFrames));
+                    }
+
+                    @Override
+                    public void onCompleted(
+                            java.io.File sessionFile,
+                            int solvedFrames) {
+                        updateStatus(
+                                "Offline solve complete | frames=" +
+                                solvedFrames +
+                                " | " +
+                                sessionFile.getAbsolutePath());
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        updateStatus(
+                                "Offline solve failed: " + message);
+                    }
+                });
+    }
 
     private void toggleRecording() {
         if (sessionRecorder == null) {
@@ -302,6 +350,11 @@ public final class MainActivity extends AppCompatActivity
         if (sessionRecorder != null) {
             sessionRecorder.close();
             sessionRecorder = null;
+        }
+
+        if (offlineVideoSolver != null) {
+            offlineVideoSolver.close();
+            offlineVideoSolver = null;
         }
 
         analysisExecutor.shutdownNow();
