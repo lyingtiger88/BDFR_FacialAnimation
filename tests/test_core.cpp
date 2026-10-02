@@ -24,6 +24,7 @@
 #include "bdfr/expression/EmotionEngine.h"
 #include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Calibration.h"
+#include "bdfr/expression/BehaviorEngine.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
 
@@ -761,6 +762,32 @@ int main() {
     expect(calibration.normalizeValue("jawOpen", 0.55F) > 0.49F &&
            calibration.normalizeValue("jawOpen", 0.55F) < 0.51F,
            "calibration maps intermediate value proportionally");
+
+
+
+    bdfr::expression::BehaviorProfile behaviorProfile;
+    behaviorProfile.blinkIntervalSeconds = 2.0;
+    behaviorProfile.blinkDurationSeconds = 0.2;
+    behaviorProfile.eyeDartStrength = 0.1F;
+    behaviorProfile.headYawDegrees = 2.0F;
+
+    const auto behaviorBlink = bdfr::expression::BehaviorEngine::sample(
+        behaviorProfile, 0.1, 0);
+    expect(behaviorBlink.curves.find("eyeBlinkLeft") != behaviorBlink.curves.end() &&
+           behaviorBlink.curves.at("eyeBlinkLeft") > 0.9F,
+           "procedural behavior creates blink envelope");
+
+    const auto behaviorMotion = bdfr::expression::BehaviorEngine::sample(
+        behaviorProfile, 1.0, 123);
+    expect(std::fabs(behaviorMotion.gaze.x) <= 0.1001F,
+           "procedural gaze remains inside profile strength");
+    expect(std::fabs(behaviorMotion.head.yaw) <= 2.001F,
+           "procedural head yaw remains inside profile range");
+
+    const auto behaviorRepeat = bdfr::expression::BehaviorEngine::sample(
+        behaviorProfile, 1.0, 123);
+    expect(std::fabs(behaviorMotion.head.yaw - behaviorRepeat.head.yaw) < 0.000001,
+           "procedural behavior is deterministic for seed/time");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
