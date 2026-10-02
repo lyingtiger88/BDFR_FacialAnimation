@@ -23,6 +23,7 @@
 #include "bdfr/audio/AudioBehavior.h"
 #include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/speech/DialogueCompiler.h"
+#include "bdfr/speech/TranscriptTiming.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
@@ -1212,6 +1213,29 @@ int main() {
     }
     expect(foundVoicedPitch,
            "pitch tracker estimates synthetic 200 Hz tone");
+
+
+
+    const auto fittedTranscript =
+        bdfr::speech::TranscriptTiming::fitTextToDuration(
+            "Hello world",
+            2.0);
+
+    expect(!fittedTranscript.events.empty(),
+           "text-audio timing produces speech events");
+    expect(std::fabs(
+               fittedTranscript.targetDurationSeconds - 2.0) <
+           0.000001,
+           "text-audio timing preserves requested duration");
+    if (!fittedTranscript.events.empty()) {
+        const auto& lastEvent =
+            fittedTranscript.events.back();
+        const double fittedDuration =
+            lastEvent.startSeconds +
+            lastEvent.durationSeconds;
+        expect(std::fabs(fittedDuration - 2.0) < 0.001,
+               "text-audio timing scales event timeline to audio duration");
+    }
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
