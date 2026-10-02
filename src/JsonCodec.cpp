@@ -297,6 +297,60 @@ bool decodeFrameValue(const JsonValue& root, FacialFrame& frame, std::string* er
     return true;
 }
 
+
+bool decodeSessionValue(const JsonValue& root, Session& session, std::string* error) {
+    Session out;
+    if (!stringMember(root, "id", out.id) ||
+        !stringMember(root, "project", out.project) ||
+        !stringMember(root, "scene", out.scene) ||
+        !stringMember(root, "shot", out.shot)) {
+        if (error) *error = "session missing string metadata";
+        return false;
+    }
+
+    const JsonValue* takes = member(root, "takes");
+    if (!takes || takes->type != JsonValue::Type::Array) {
+        if (error) *error = "session takes array missing";
+        return false;
+    }
+
+    for (const auto& tv : takes->array) {
+        Take take;
+        double duration=0, fpsNum=0, fpsDen=0;
+        if (!stringMember(tv, "id", take.id) || !stringMember(tv, "name", take.name) ||
+            !stringMember(tv, "actorId", take.actorId) || !stringMember(tv, "source", take.source) ||
+            !numberMember(tv, "duration", duration) || !numberMember(tv, "fpsNum", fpsNum) ||
+            !numberMember(tv, "fpsDen", fpsDen)) {
+            if (error) *error = "invalid take";
+            return false;
+        }
+        take.durationSeconds = duration;
+        take.frameRateNumerator = static_cast<std::uint32_t>(fpsNum);
+        take.frameRateDenominator = static_cast<std::uint32_t>(fpsDen);
+
+        const JsonValue* ranges = member(tv, "dirtyRanges");
+        if (!ranges || ranges->type != JsonValue::Type::Array) {
+            if (error) *error = "take dirtyRanges missing";
+            return false;
+        }
+        for (const auto& rv : ranges->array) {
+            double start=0, end=0;
+            if (!numberMember(rv, "start", start) || !numberMember(rv, "end", end)) {
+                if (error) *error = "invalid dirty range";
+                return false;
+            }
+            take.dirtyRanges.push_back({start, end});
+        }
+        if (!out.addTake(std::move(take))) {
+            if (error) *error = "failed to add decoded take";
+            return false;
+        }
+    }
+
+    session = std::move(out);
+    return true;
+}
+
 } // namespace
 
 std::string JsonCodec::encodeFrame(const FacialFrame& frame) {
@@ -385,56 +439,76 @@ bool JsonCodec::decodeSession(const std::string& json, Session& session, std::st
     JsonValue root;
     Parser parser(json);
     if (!parser.parse(root, error)) return false;
+    return decodeSessionValue(root, session, error);
+}
 
-    Session out;
-    if (!stringMember(root, "id", out.id) ||
-        !stringMember(root, "project", out.project) ||
-        !stringMember(root, "scene", out.scene) ||
-        !stringMember(root, "shot", out.shot)) {
-        if (error) *error = "session missing string metadata";
+std::string JsonCodec::encodeProject(const Project& project) {
+    std::ostringstream out;
+    out << "{\"type\":\"BDFRProject\",\"version\":" << project.schemaVersion
+        << ",\"name\":\"" << escapeJson(project.name) << "\""
+        << ",\"actors\":[";
+
+    bool firstActor = true;
+    for (const auto& actor : project.actors) {
+        if (!firstActor) out << ',';
+        firstActor = false;
+        out << "{\"id\":\"" << escapeJson(actor.id)
+            << "\",\"name\":\"" << escapeJson(actor.name)
+            << "\",\"notes\":\"" << escapeJson(actor.notes) << "\"}";
+    }
+
+    out << "],\"sessions\":[";
+    bool firstSession = true;
+    for (const auto& session : project.sessions) {
+        if (!firstSession) out << ',';
+        firstSession = false;
+        out << encodeSession(session);
+    }
+    out << "]}";
+    return out.str();
+}
+
+bool JsonCodec::decodeProject(const std::string& json, Project& project, std::string* error) {
+    JsonValue root;
+    Parser parser(json);
+    if (!parser.parse(root, error)) return false;
+
+    double version = 0.0;
+    Project out;
+    if (!numberMember(root, "version", version) || !stringMember(root, "name", out.name)) {
+        if (error) *error = "project metadata missing";
+        return false;
+    }
+    out.schemaVersion = static_cast<std::uint32_t>(version);
+
+    const JsonValue* actors = member(root, "actors");
+    const JsonValue* sessions = member(root, "sessions");
+    if (!actors || actors->type != JsonValue::Type::Array ||
+        !sessions || sessions->type != JsonValue::Type::Array) {
+        if (error) *error = "project actors/sessions missing";
         return false;
     }
 
-    const JsonValue* takes = member(root, "takes");
-    if (!takes || takes->type != JsonValue::Type::Array) {
-        if (error) *error = "session takes array missing";
-        return false;
-    }
-
-    for (const auto& tv : takes->array) {
-        Take take;
-        double duration=0, fpsNum=0, fpsDen=0;
-        if (!stringMember(tv, "id", take.id) || !stringMember(tv, "name", take.name) ||
-            !stringMember(tv, "actorId", take.actorId) || !stringMember(tv, "source", take.source) ||
-            !numberMember(tv, "duration", duration) || !numberMember(tv, "fpsNum", fpsNum) ||
-            !numberMember(tv, "fpsDen", fpsDen)) {
-            if (error) *error = "invalid take";
-            return false;
-        }
-        take.durationSeconds = duration;
-        take.frameRateNumerator = static_cast<std::uint32_t>(fpsNum);
-        take.frameRateDenominator = static_cast<std::uint32_t>(fpsDen);
-
-        const JsonValue* ranges = member(tv, "dirtyRanges");
-        if (!ranges || ranges->type != JsonValue::Type::Array) {
-            if (error) *error = "take dirtyRanges missing";
-            return false;
-        }
-        for (const auto& rv : ranges->array) {
-            double start=0, end=0;
-            if (!numberMember(rv, "start", start) || !numberMember(rv, "end", end)) {
-                if (error) *error = "invalid dirty range";
-                return false;
-            }
-            take.dirtyRanges.push_back({start, end});
-        }
-        if (!out.addTake(std::move(take))) {
-            if (error) *error = "failed to add decoded take";
+    for (const auto& av : actors->array) {
+        ActorProfile actor;
+        if (!stringMember(av, "id", actor.id) ||
+            !stringMember(av, "name", actor.name) ||
+            !stringMember(av, "notes", actor.notes) ||
+            !out.addActor(std::move(actor))) {
+            if (error) *error = "invalid project actor";
             return false;
         }
     }
 
-    session = std::move(out);
+    for (const auto& sv : sessions->array) {
+        Session session;
+        if (!decodeSessionValue(sv, session, error) || !out.addSession(std::move(session))) {
+            if (error && error->empty()) *error = "invalid project session";
+            return false;
+        }
+    }
+
+    project = std::move(out);
     return true;
 }
 
