@@ -199,7 +199,7 @@ public final class MainActivity extends AppCompatActivity
                 frame.curves.put("mouthSmileRight", 0.39f);
                 frame.curves.put("browInnerUp", 0.21f);
 
-                client.send(frame);
+                client.sendBlocking(frame);
 
                 updateStatus(
                         "Diagnostic BDFP packet sent to " +
