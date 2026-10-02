@@ -20,6 +20,7 @@
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
+#include "bdfr/runtime/UdpTransport.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Schema.h"
 #include "bdfr/core/Recovery.h"
@@ -912,6 +913,28 @@ int main() {
         compiledTracks[1].clips.front().durationSeconds * 0.5);
     expect(!compiledFace.empty(),
            "compiled text timeline evaluates to facial curves");
+
+
+
+    bdfr::runtime::UdpFrameReceiver udpReceiver;
+    expect(udpReceiver.open(0, "127.0.0.1", &error),
+           "UDP receiver opens on loopback: " + error);
+    expect(udpReceiver.localPort() != 0,
+           "UDP receiver obtains an ephemeral local port");
+
+    bdfr::runtime::UdpFrameSender udpSender;
+    expect(udpSender.open(&error), "UDP sender opens: " + error);
+    expect(udpSender.sendTo("127.0.0.1", udpReceiver.localPort(), packet, &error),
+           "UDP sender transmits BDFP packet: " + error);
+
+    bdfr::mocap::MocapPacket udpPacket;
+    expect(udpReceiver.receive(udpPacket, 1000, &error),
+           "UDP receiver decodes loopback BDFP packet: " + error);
+    expect(udpPacket.sequenceNumber == packet.sequenceNumber &&
+           udpPacket.sourceId == packet.sourceId,
+           "UDP loopback preserves packet metadata");
+    expect(near(udpPacket.frame.curves.at("jawOpen"), 0.7F),
+           "UDP loopback preserves facial curves");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
