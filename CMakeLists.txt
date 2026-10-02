@@ -50,3 +50,9 @@ enable_testing()
 add_executable(bdfr_core_tests tests/test_core.cpp)
 target_link_libraries(bdfr_core_tests PRIVATE bdfr_core)
 add_test(NAME bdfr_core_tests COMMAND bdfr_core_tests)
+
+
+add_executable(bdfr_cli tools/bdfr_cli.cpp)
+target_link_libraries(bdfr_cli PRIVATE bdfr_core)
+
+add_test(NAME bdfr_cli_text COMMAND bdfr_cli text "Hello world")
