@@ -32,6 +32,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path artifact/BDFR_Initial_Test_Windows | Out-Null
           Copy-Item build/Release/bdfr_cli.exe artifact/BDFR_Initial_Test_Windows/
           Copy-Item build/Release/bdfr_initial_smoke_tests.exe artifact/BDFR_Initial_Test_Windows/
+          Copy-Item build/Release/bdfr_live_receiver.exe artifact/BDFR_Initial_Test_Windows/
           Copy-Item scripts/run_prebuilt_test.ps1 artifact/BDFR_Initial_Test_Windows/
           Copy-Item Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Windows/README.md
 
@@ -50,10 +51,12 @@ jobs:
           mkdir -p artifact/BDFR_Initial_Test_Linux
           cp build/bdfr_cli artifact/BDFR_Initial_Test_Linux/
           cp build/bdfr_initial_smoke_tests artifact/BDFR_Initial_Test_Linux/
+          cp build/bdfr_live_receiver artifact/BDFR_Initial_Test_Linux/
           cp scripts/run_prebuilt_test.sh artifact/BDFR_Initial_Test_Linux/
           cp Docs/PREBUILT_TEST.md artifact/BDFR_Initial_Test_Linux/README.md
           chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_cli
           chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_initial_smoke_tests
+          chmod +x artifact/BDFR_Initial_Test_Linux/bdfr_live_receiver
           chmod +x artifact/BDFR_Initial_Test_Linux/run_prebuilt_test.sh
 
       - name: Upload Linux initial test kit
