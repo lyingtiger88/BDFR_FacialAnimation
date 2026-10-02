@@ -24,6 +24,7 @@ add_library(bdfr_core
     src/Persistence.cpp
     src/Retargeter.cpp
     src/AutoMapper.cpp
+    src/TextSpeech.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
