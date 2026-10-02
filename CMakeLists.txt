@@ -39,6 +39,7 @@ add_library(bdfr_core
     src/FaceObservation.cpp
     src/CaptureQuality.cpp
     src/FramePacketCodec.cpp
+    src/UdpTransport.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
@@ -59,3 +60,7 @@ add_executable(bdfr_cli tools/bdfr_cli.cpp)
 target_link_libraries(bdfr_cli PRIVATE bdfr_core)
 
 add_test(NAME bdfr_cli_text COMMAND bdfr_cli text "Hello world")
+
+if(WIN32)
+    target_link_libraries(bdfr_core PRIVATE ws2_32)
+endif()
