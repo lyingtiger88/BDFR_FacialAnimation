@@ -11,6 +11,9 @@ add_library(bdfr_core
     src/CurveMixer.cpp
     src/Timeline.cpp
     src/Session.cpp
+    src/Sequence.cpp
+    src/CorrectiveEngine.cpp
+    src/ExpressionStack.cpp
 )
 
 target_include_directories(bdfr_core PUBLIC include)
