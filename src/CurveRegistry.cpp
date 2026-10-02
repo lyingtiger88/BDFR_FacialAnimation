@@ -12,10 +12,17 @@ std::vector<std::string> makeCanonicalCurves() {
         "mouthClose", "mouthFunnel", "mouthPucker", "mouthSmileLeft",
         "mouthSmileRight", "mouthFrownLeft", "mouthFrownRight", "mouthPressLeft",
         "mouthPressRight", "mouthStretchLeft", "mouthStretchRight",
-        "cheekRaiseLeft", "cheekRaiseRight", "noseSneerLeft", "noseSneerRight",
-        "eyeBlinkLeft", "eyeBlinkRight", "eyeSquintLeft", "eyeSquintRight",
-        "eyeWideLeft", "eyeWideRight", "browInnerUp", "browOuterUpLeft",
-        "browOuterUpRight", "browDownLeft", "browDownRight"
+        "cheekRaiseLeft", "cheekRaiseRight", "cheekPuff", "cheekSquintLeft", "cheekSquintRight",
+        "noseSneerLeft", "noseSneerRight",
+        "eyeBlinkLeft", "eyeBlinkRight",
+        "eyeLookDownLeft", "eyeLookDownRight", "eyeLookInLeft", "eyeLookInRight",
+        "eyeLookOutLeft", "eyeLookOutRight", "eyeLookUpLeft", "eyeLookUpRight",
+        "eyeSquintLeft", "eyeSquintRight", "eyeWideLeft", "eyeWideRight",
+        "browInnerUp", "browOuterUpLeft", "browOuterUpRight", "browDownLeft", "browDownRight",
+        "mouthDimpleLeft", "mouthDimpleRight", "mouthLeft", "mouthRight",
+        "mouthLowerDownLeft", "mouthLowerDownRight", "mouthRollLower", "mouthRollUpper",
+        "mouthShrugLower", "mouthShrugUpper", "mouthUpperUpLeft", "mouthUpperUpRight",
+        "tongueOut"
     };
 }
 } // namespace
