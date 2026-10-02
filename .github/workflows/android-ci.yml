@@ -1,0 +1,44 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Mobile/BDFR_FaceCapture_Android/**'
+      - '.github/workflows/android-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Mobile/BDFR_FaceCapture_Android/**'
+      - '.github/workflows/android-ci.yml'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Install Android SDK 37
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Unit tests
+        working-directory: Mobile/BDFR_FaceCapture_Android
+        run: gradle :app:testDebugUnitTest --stacktrace
+
+      - name: Assemble debug APK
+        working-directory: Mobile/BDFR_FaceCapture_Android
+        run: gradle :app:assembleDebug --stacktrace
