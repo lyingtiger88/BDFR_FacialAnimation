@@ -26,6 +26,7 @@ This roadmap tracks implementation status, not just planned scope.
 - [x] Partial re-solve dirty-range model
 - [x] Initial automated core tests
 - [x] GitHub Actions CI for Windows and Ubuntu
+- [~] Android CI build/test workflow
 - [~] M0 Foundation — core foundation largely implemented
 - [~] M1 FACS Core — expression/dynamics/tooling foundations implemented
 - [~] M2 UE5 Runtime — plugin skeleton + Blueprint curve component
@@ -146,7 +147,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] JSON interchange
 - [~] Deterministic little-endian codec/header tests
 - [x] Curve key reduction
-- [ ] Curve compression
+- [~] Key reduction implemented; binary compression remains
 
 ## Timeline foundation
 
@@ -171,7 +172,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Snapping
 - [ ] Bezier/tangent editing
 - [x] Key reduction
-- [ ] Quality/confidence heatmap
+- [~] Per-frame quality reports foundation
 - [x] Partial range re-solve primitives
 
 ## Exit criteria
@@ -228,7 +229,7 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Input modes
 
-- [ ] Audio file
+- [~] Audio file — PCM16 WAV frontend + features/prosody foundation
 - [ ] Live microphone
 - [x] Text-only fallback prototype
 - [ ] Text + TTS timing
@@ -236,7 +237,7 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Goals
 
-- [ ] Speech segmentation
+- [~] Speech activity / silence segmentation foundation
 - [ ] Phoneme timing
 - [x] Viseme generation prototype
 - [~] Jaw/lip viseme pose coordination
@@ -276,8 +277,8 @@ All input paths must converge on the shared BDFR facial representation.
 ## Goals
 
 - [ ] Extract prosody
-- [ ] Estimate emphasis
-- [ ] Estimate pauses/breath events
+- [x] Energy-based emphasis candidate foundation
+- [~] Pause/breath cue foundation
 - [x] Generate procedural full-face behavior foundation
 - [x] Emotion layering/presets foundation
 - [x] Blink generation
@@ -285,7 +286,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [x] Gaze drift behavior foundation
 - [~] Procedural head yaw/pitch/roll foundation
 - [~] Instant micro-event foundation
-- [ ] Breathing cues
+- [~] Audio-driven breath cue foundation
 - [~] Personality/performance preset foundation
 - [x] Character personality profiles
 - [ ] Intent tags
@@ -293,8 +294,8 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Deliverables
 
-- [ ] Prosody feature extractor
-- [ ] Emphasis events
+- [~] RMS/peak/ZCR + energy prosody foundation
+- [x] Emphasis cue foundation
 - [x] Blink generator
 - [x] Gaze/eye-dart generator foundation
 - [x] Head-motion generator foundation
@@ -332,46 +333,48 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Offline desktop video
 
-- [ ] Video-file input
-- [ ] Full-sequence analysis
+- [~] Provider-driven offline video source pipeline
+- [~] Full-sequence solve orchestration
 - [ ] Look-ahead/look-behind solve
-- [ ] Bidirectional smoothing
-- [ ] Offline high-quality Studio mode
-- [ ] Partial clip re-solve
-- [ ] Region-specific re-solve
+- [~] Offline sequence smoothing foundation
+- [~] Offline Studio pipeline foundation
+- [~] Partial time-range re-solve primitives
+- [~] Region freeze + dirty-range foundations
 - [~] Bad-take quality scoring foundation
 - [ ] Quality/confidence heatmap
 
 ## Android — BDFR FaceCapture Mobile
 
+Current provider: MediaPipe Face Landmarker (IMAGE / VIDEO / LIVE_STREAM) with 52 blendshape output.
+
 - [x] Android app skeleton
 - [~] Front-camera CameraX preview
-- [ ] Live facial tracking
-- [ ] On-device solve
+- [x] MediaPipe LIVE_STREAM face tracking path
+- [x] MediaPipe on-device 52-blendshape solve foundation
 - [x] Prerecorded-video picker/import entry point
-- [ ] Offline video-to-animation extraction
-- [ ] Record then solve
-- [ ] Local session storage
+- [~] VIDEO-mode MediaPipe + offline pipeline foundation
+- [~] Solved-frame recording + prerecorded-video import foundations
+- [x] Local BDFS solved-session recording
 - [x] Live camera preview
-- [ ] FPS/confidence display
+- [x] Live FPS/confidence/status display
 - [ ] Actor calibration
 - [~] UDP live-stream client foundation
 - [ ] USB transfer mode
 - [ ] Remote Record/Stop
 - [ ] QR/pairing flow
 - [ ] Send video to PC for high-quality solve
-- [ ] Send intermediate tracking data to PC
-- [ ] Mobile Mocap Track import
+- [~] BDFR solved-curve packet streaming
+- [~] BDFS session format compatible with desktop
 
 ## Deliverables
 
 - [~] Capture interfaces/contracts
-- [ ] Tracking pipeline
+- [~] MediaPipe Android provider + desktop provider interfaces
 - [x] Normalized FaceObservation contract
 - [ ] Debug overlays
-- [ ] Recording/replay system
-- [ ] Studio offline solver
-- [ ] Android capture-analysis path
+- [~] BDFS recorded solved-session stream
+- [~] Offline processor + sequence filter foundation
+- [x] CameraX → MediaPipe live analysis path
 - [x] Shared BDFR/BDFP binary packet protocol + Android encoder
 - [~] Clock-offset estimator foundation
 
@@ -455,8 +458,8 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Retargeting
 
-- [ ] MetaHuman mapping profile
-- [ ] ARKit 52 compatibility profile
+- [~] UE generic RetargetProfileAsset; MetaHuman-specific mapping remains
+- [x] ARKit 52 compatibility profile
 - [~] Generic retarget profile core
 - [ ] Facial bone mapping
 - [ ] Retarget calibration UI
@@ -468,7 +471,7 @@ All input paths must converge on the shared BDFR facial representation.
 - [ ] Pose-space correctives
 - [x] Character compatibility scanner foundation
 - [ ] Auto retarget calibration
-- [ ] Retarget preview
+- [~] UE SkeletalMesh morph application path
 
 ## Mocap fusion
 
@@ -481,9 +484,9 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Exit criteria
 
-- [ ] One performance retargets to multiple characters with minimal edits
-- [ ] External live mocap can drive BDFR in real time
-- [ ] Imported mocap can be edited in the BDFR timeline
+- [~] Generic retarget profiles support multiple target rigs; production workflow remains
+- [~] UDP/external adapter core implemented; end-to-end app verification remains
+- [~] BDFS/curve data format implemented; editor UI remains
 - [~] Region-level fusion core is implemented and unit-tested
 
 ---
@@ -496,11 +499,11 @@ All input paths must converge on the shared BDFR facial representation.
 
 - [ ] Live microphone streaming
 - [ ] Live camera streaming
-- [ ] Live mocap streaming
+- [~] UDP BDFP live packet streaming foundation
 - [ ] Incremental inference
 - [~] Thread-safe bounded frame queue foundation
 - [x] Bounded frame queue memory
-- [ ] Low latency
+- [~] KEEP_ONLY_LATEST + bounded queue/jitter foundations
 - [x] Jitter buffer
 - [~] Sequence/drop accounting foundation
 - [~] Configurable jitter delay foundation
@@ -515,7 +518,7 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Transport
 
-- [ ] UDP
+- [x] UDP sender/receiver foundation
 - [ ] TCP
 - [ ] WebSocket
 - [ ] OSC
@@ -562,24 +565,24 @@ All input paths must converge on the shared BDFR facial representation.
 
 ## Remaining quality systems
 
-- [ ] Regression suite
+- [~] Multiple unit/integration harnesses
 - [ ] Visual benchmark suite
 - [ ] Objective timing tests
 - [ ] Quality review workflow
 - [x] Profiling primitives
 - [ ] Failure-mode catalog implementation
-- [ ] Performance Cleanup Assistant
-- [ ] Smart Cleanup
+- [~] Sequence diagnostics foundation
+- [x] Conservative isolated-curve despike foundation
 - [~] Capture quality/bad-take scoring foundation
 - [~] Logging/timing diagnostics foundation
-- [ ] Take quality heatmap
+- [~] Per-frame CaptureQuality reports
 - [ ] A/B solver preview
 - [~] Curve diff primitive
 - [~] Curve diff/freeze primitives
-- [ ] Source vs Retargeted comparison
+- [~] Retarget compatibility + Curve diff foundations
 - [ ] Stress tests
 - [ ] Sanitizer CI
-- [ ] Large stream tests
+- [~] Session-stream tests
 
 ## Benchmark categories
 
@@ -684,7 +687,7 @@ These features span multiple milestones.
 - [~] Expression/Timeline layering foundations
 - [x] Partial re-solve core ranges
 - [x] Region freeze
-- [ ] Smart cleanup
+- [x] Smart cleanup despike foundation
 - [x] Key reduction
 - [~] Key-reduction optimization foundation
 - [ ] Pose library
@@ -715,7 +718,7 @@ These features span multiple milestones.
 - [ ] Maya
 - [ ] JSON
 - [ ] CSV
-- [ ] BDFR binary
+- [x] BDFR frame + BDFP packet + BDFS session binary formats
 
 ## Model management
 
