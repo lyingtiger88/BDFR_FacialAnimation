@@ -16,6 +16,7 @@
 #include "bdfr/core/AutoMapper.h"
 #include "bdfr/speech/TextSpeech.h"
 #include "bdfr/speech/DialogueMarkup.h"
+#include "bdfr/speech/DialogueCompiler.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
@@ -881,6 +882,36 @@ int main() {
     bdfr::speech::DialogueScript invalidDialogue;
     expect(!bdfr::speech::DialogueMarkup::parse("[unknown=value]", invalidDialogue, &error),
            "unknown dialogue markup is rejected");
+
+
+
+    bdfr::speech::DialogueCompileResult compiledDialogue;
+    expect(bdfr::speech::DialogueCompiler::compile(
+               dialogueScript, compiledDialogue, {}, &error),
+           "dialogue script compiles to multi-track timeline: " + error);
+    expect(compiledDialogue.timeline.tracks().size() == 5,
+           "dialogue compiler creates five editing tracks");
+    expect(compiledDialogue.durationSeconds > 0.4,
+           "dialogue compiler accounts for speech and pause duration");
+
+    const auto& compiledTracks = compiledDialogue.timeline.tracks();
+    expect(!compiledTracks[0].clips.empty(),
+           "compiled dialogue contains text clip");
+    expect(!compiledTracks[1].clips.empty(),
+           "compiled dialogue contains generated speech/viseme clips");
+    expect(!compiledTracks[2].clips.empty(),
+           "compiled dialogue contains emotion clip");
+    expect(!compiledTracks[3].clips.empty(),
+           "compiled dialogue contains instant event clip");
+    expect(!compiledTracks[4].clips.empty() &&
+           compiledTracks[4].clips.front().payload == "player",
+           "compiled dialogue contains gaze target event");
+
+    const auto compiledFace = compiledDialogue.timeline.evaluate(
+        compiledTracks[1].clips.front().startSeconds +
+        compiledTracks[1].clips.front().durationSeconds * 0.5);
+    expect(!compiledFace.empty(),
+           "compiled text timeline evaluates to facial curves");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
