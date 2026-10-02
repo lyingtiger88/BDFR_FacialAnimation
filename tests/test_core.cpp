@@ -27,6 +27,7 @@
 #include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
+#include "bdfr/runtime/LiveSessionReceiver.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Schema.h"
 #include "bdfr/core/Recovery.h"
@@ -1121,6 +1122,55 @@ int main() {
     expect(decodedSessionPackets[1].sequenceNumber == 43 &&
            near(decodedSessionPackets[1].frame.curves.at("jawOpen"), 0.5F),
            "BDFS session preserves frame metadata and curves");
+
+
+
+    bdfr::runtime::LiveSessionReceiver liveReceiver(0.0);
+    expect(liveReceiver.open(0, "127.0.0.1", &error),
+           "live session receiver opens on loopback: " + error);
+
+    bdfr::mocap::MocapPacket livePacket1 = packet;
+    livePacket1.sequenceNumber = 1;
+    livePacket1.frame.timestampSeconds = 10.0;
+
+    bdfr::mocap::MocapPacket livePacket3 = packet;
+    livePacket3.sequenceNumber = 3;
+    livePacket3.frame.timestampSeconds = 10.1;
+    livePacket3.frame.curves["jawOpen"] = 0.45F;
+
+    expect(udpSender.sendTo(
+               "127.0.0.1",
+               liveReceiver.localPort(),
+               livePacket1,
+               &error),
+           "live receiver test sends first packet: " + error);
+
+    expect(liveReceiver.poll(1000, 10.2, &error),
+           "live receiver polls first packet: " + error);
+
+    expect(udpSender.sendTo(
+               "127.0.0.1",
+               liveReceiver.localPort(),
+               livePacket3,
+               &error),
+           "live receiver test sends packet with sequence gap: " + error);
+
+    expect(liveReceiver.poll(1000, 10.3, &error),
+           "live receiver polls sequence-gap packet: " + error);
+
+    const auto liveStats = liveReceiver.stats();
+    expect(liveStats.packetsReceived == 2,
+           "live receiver counts received packets");
+    expect(liveStats.packetsLost == 1,
+           "live receiver detects packet sequence loss");
+    expect(liveStats.clockOffsetSeconds > 0.0,
+           "live receiver estimates remote-to-local clock offset");
+
+    bdfr::FacialFrame liveReady;
+    expect(liveReceiver.popReady(11.0, liveReady),
+           "live receiver releases playback-ready frame");
+    expect(liveReady.timestampSeconds > 10.0,
+           "live receiver converts remote timestamp to local time");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
