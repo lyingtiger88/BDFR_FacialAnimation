@@ -15,6 +15,7 @@
 #include "bdfr/core/Retargeter.h"
 #include "bdfr/core/AutoMapper.h"
 #include "bdfr/speech/TextSpeech.h"
+#include "bdfr/speech/DialogueMarkup.h"
 #include "bdfr/runtime/LiveRuntime.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/FramePacketCodec.h"
@@ -851,6 +852,35 @@ int main() {
     expect(std::fabs(reservedBehavior.gaze.x - nervousBehavior.gaze.x) > 0.0001F ||
            std::fabs(reservedBehavior.head.yaw - nervousBehavior.head.yaw) > 0.0001F,
            "same time produces distinct personality performance");
+
+
+
+    bdfr::speech::DialogueScript dialogueScript;
+    expect(bdfr::speech::DialogueMarkup::parse(
+               "[emotion=angry intensity=0.7] Where have you been? [pause=0.4] [blink] [gaze=player]",
+               dialogueScript, &error),
+           "dialogue performance markup parses: " + error);
+    expect(dialogueScript.items.size() == 5,
+           "dialogue markup preserves text and four directives");
+    expect(dialogueScript.items[0].type == bdfr::speech::DialogueItemType::Emotion &&
+           dialogueScript.items[0].argument == "angry" &&
+           near(dialogueScript.items[0].value, 0.7F),
+           "dialogue markup parses emotion and intensity");
+    expect(dialogueScript.items[1].type == bdfr::speech::DialogueItemType::Text &&
+           dialogueScript.items[1].text == "Where have you been?",
+           "dialogue markup keeps dialogue text");
+    expect(dialogueScript.items[2].type == bdfr::speech::DialogueItemType::Pause &&
+           near(dialogueScript.items[2].value, 0.4F),
+           "dialogue markup parses pause");
+    expect(dialogueScript.items[3].type == bdfr::speech::DialogueItemType::Blink,
+           "dialogue markup parses blink event");
+    expect(dialogueScript.items[4].type == bdfr::speech::DialogueItemType::Gaze &&
+           dialogueScript.items[4].argument == "player",
+           "dialogue markup parses gaze target");
+
+    bdfr::speech::DialogueScript invalidDialogue;
+    expect(!bdfr::speech::DialogueMarkup::parse("[unknown=value]", invalidDialogue, &error),
+           "unknown dialogue markup is rejected");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
