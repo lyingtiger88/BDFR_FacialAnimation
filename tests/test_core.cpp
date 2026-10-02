@@ -25,6 +25,7 @@
 #include "bdfr/core/PerformanceFusion.h"
 #include "bdfr/core/Calibration.h"
 #include "bdfr/expression/BehaviorEngine.h"
+#include "bdfr/expression/Personality.h"
 #include "bdfr/capture/FaceObservation.h"
 #include "bdfr/capture/CaptureQuality.h"
 #include "bdfr/core/Sequence.h"
@@ -828,6 +829,28 @@ int main() {
            "capture quality applies occlusion penalty");
     expect(occludedQuality.badTake,
            "occluded low-quality observation can be flagged as bad take");
+
+
+
+    const auto reservedPersonality =
+        bdfr::expression::PersonalityLibrary::preset(
+            bdfr::expression::PersonalityPreset::Reserved);
+    const auto nervousPersonality =
+        bdfr::expression::PersonalityLibrary::preset(
+            bdfr::expression::PersonalityPreset::Nervous);
+    expect(reservedPersonality.articulationScale < nervousPersonality.articulationScale,
+           "personality presets vary articulation");
+    expect(reservedPersonality.behavior.eyeDartStrength <
+           nervousPersonality.behavior.eyeDartStrength,
+           "personality presets vary gaze behavior");
+
+    const auto reservedBehavior = bdfr::expression::BehaviorEngine::sample(
+        reservedPersonality.behavior, 1.0, reservedPersonality.seed);
+    const auto nervousBehavior = bdfr::expression::BehaviorEngine::sample(
+        nervousPersonality.behavior, 1.0, nervousPersonality.seed);
+    expect(std::fabs(reservedBehavior.gaze.x - nervousBehavior.gaze.x) > 0.0001F ||
+           std::fabs(reservedBehavior.head.yaw - nervousBehavior.head.yaw) > 0.0001F,
+           "same time produces distinct personality performance");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
