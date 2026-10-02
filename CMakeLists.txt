@@ -31,6 +31,7 @@ add_library(bdfr_core
     src/Recovery.cpp
     src/EmotionEngine.cpp
     src/PerformanceFusion.cpp
+    src/Calibration.cpp
     src/FramePacketCodec.cpp
 )
 
