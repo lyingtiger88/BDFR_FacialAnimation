@@ -33,6 +33,7 @@
 #include "bdfr/runtime/UdpTransport.h"
 #include "bdfr/runtime/LiveSessionReceiver.h"
 #include "bdfr/core/Session.h"
+#include "bdfr/core/Timecode.h"
 #include "bdfr/core/Schema.h"
 #include "bdfr/core/Recovery.h"
 #include "bdfr/expression/EmotionEngine.h"
@@ -1341,6 +1342,51 @@ int main() {
     expect(csvRoundtrip.frames().size() ==
                csvSequence.frames().size(),
            "mocap CSV roundtrip preserves frame count");
+
+
+
+    const bdfr::FrameRate fps25 = bdfr::FrameRate::Fps25();
+    expect(fps25.valid() &&
+           std::fabs(fps25.framesPerSecond() - 25.0) < 0.000001,
+           "25 fps frame rate is valid");
+
+    expect(bdfr::TimecodeConverter::secondsToFrame(
+               2.0,
+               fps25) == 50,
+           "timecode converts seconds to frame index");
+
+    expect(std::fabs(
+               bdfr::TimecodeConverter::frameToSeconds(
+                   50,
+                   fps25) -
+               2.0) < 0.000001,
+           "timecode converts frame index to seconds");
+
+    const auto tc25 =
+        bdfr::TimecodeConverter::frameToTimecode(
+            25 * (3600 + 2 * 60 + 3) + 12,
+            fps25);
+
+    expect(tc25.hours == 1 &&
+           tc25.minutes == 2 &&
+           tc25.seconds == 3 &&
+           tc25.frames == 12,
+           "timecode splits nominal frame number correctly");
+
+    std::int64_t roundtripFrame = 0;
+    expect(bdfr::TimecodeConverter::timecodeToFrame(
+               tc25,
+               fps25,
+               roundtripFrame),
+           "timecode parses valid nominal timecode");
+
+    expect(roundtripFrame ==
+               25 * (3600 + 2 * 60 + 3) + 12,
+           "timecode roundtrip preserves frame index");
+
+    expect(bdfr::FrameRate::Ntsc2997().framesPerSecond() > 29.96 &&
+           bdfr::FrameRate::Ntsc2997().framesPerSecond() < 29.98,
+           "29.97 rational frame rate is represented exactly");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
