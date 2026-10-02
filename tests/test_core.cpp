@@ -13,6 +13,7 @@
 #include "bdfr/core/Project.h"
 #include "bdfr/core/Persistence.h"
 #include "bdfr/core/Retargeter.h"
+#include "bdfr/core/AutoMapper.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Sequence.h"
 #include "bdfr/core/Timeline.h"
@@ -493,6 +494,18 @@ int main() {
     expect(compatibility.mappedTargets == 1, "compatibility counts mapped target");
     expect(compatibility.missingTargets == 1, "compatibility counts missing target");
     expect(near(compatibility.coverage, 0.5F), "compatibility coverage computed");
+
+
+
+    expect(bdfr::AutoMapper::normalizeName("mouthSmile_Left") ==
+           bdfr::AutoMapper::normalizeName("mouthSmileL"),
+           "auto mapper normalizes left-side naming variants");
+
+    const auto suggestions = bdfr::AutoMapper::suggest(
+        {"jawOpen", "mouthSmileLeft", "eyeBlinkRight"},
+        {"Jaw_Open", "mouthSmile_L", "EyeBlinkRight"},
+        0.75F);
+    expect(suggestions.size() == 3, "auto mapper finds normalized rig-name matches");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
