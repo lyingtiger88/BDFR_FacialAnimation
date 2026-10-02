@@ -2,6 +2,8 @@
 #include "bdfr/core/CurveMixer.h"
 #include "bdfr/core/CurveRegistry.h"
 #include "bdfr/core/CurveDynamics.h"
+#include "bdfr/core/CurveCatalog.h"
+#include "bdfr/core/CurveTools.h"
 #include "bdfr/core/CorrectiveEngine.h"
 #include "bdfr/core/ExpressionStack.h"
 #include "bdfr/core/JsonCodec.h"
@@ -370,6 +372,33 @@ int main() {
            "history redo restores next snapshot");
     history.push({{"jawOpen", 0.6F}});
     expect(!history.canRedo(), "new edit invalidates redo branch");
+
+
+
+    bdfr::CurveCatalog catalog;
+    const auto* blinkLeftMeta = catalog.metadata("eyeBlinkLeft");
+    expect(blinkLeftMeta != nullptr, "curve catalog returns eye blink metadata");
+    expect(blinkLeftMeta != nullptr && blinkLeftMeta->region == bdfr::CurveRegion::Eyes,
+           "curve catalog classifies eye blink region");
+    expect(blinkLeftMeta != nullptr && blinkLeftMeta->counterpart == "eyeBlinkRight",
+           "curve catalog exposes left/right counterpart");
+    const auto* au12Meta = catalog.metadata("AU12");
+    expect(au12Meta != nullptr && au12Meta->facsActionUnit,
+           "curve catalog marks FACS action units");
+
+    const bdfr::CurveMap freezeBase{{"jawOpen", 0.2F}, {"eyeBlinkLeft", 0.1F}};
+    const bdfr::CurveMap freezeCandidate{{"jawOpen", 0.9F}, {"eyeBlinkLeft", 0.8F}};
+    const auto frozenEyes = bdfr::CurveTools::freezeRegions(
+        freezeBase, freezeCandidate, bdfr::regionMask(bdfr::CurveRegion::Eyes));
+    expect(near(frozenEyes.at("jawOpen"), 0.9F), "region freeze leaves unfrozen jaw changed");
+    expect(near(frozenEyes.at("eyeBlinkLeft"), 0.1F), "region freeze preserves frozen eye region");
+
+    const auto curveDiff = bdfr::CurveTools::diff(
+        {{"jawOpen", 0.2F}, {"AU12", 0.4F}},
+        {{"jawOpen", 0.8F}, {"AU12", 0.42F}},
+        0.1F);
+    expect(curveDiff.find("jawOpen") != curveDiff.end(), "curve diff reports meaningful change");
+    expect(curveDiff.find("AU12") == curveDiff.end(), "curve diff filters below threshold");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
