@@ -12,7 +12,8 @@ A tracking model should never be directly coupled to a MetaHuman, and an audio s
 
 Sources:
 - webcam
-- prerecorded video
+- prerecorded video (desktop)
+- prerecorded video (Android/mobile)
 - microphone
 - prerecorded audio
 - external facial-curve stream
@@ -132,6 +133,9 @@ Runtime/Core             shared runtime primitives
 Runtime/Audio            streaming audio frontend
 Runtime/Video            streaming video frontend
 Runtime/Networking       curve streaming protocols
+
+Mobile/BDFR_FaceCapture_Android
+                         Android capture, local offline solve and live transfer
 
 Unreal/BDFRFacialAnimation
                          UE5 plugin and adapters
@@ -285,3 +289,58 @@ The BDFR core should continue working if:
 - a new engine adapter is introduced
 - an ARKit-style target is replaced by a custom rig
 - the capture model is swapped
+
+
+---
+
+## Offline Video-to-Animation
+
+Prerecorded video is a first-class input on both desktop and Android.
+
+### Desktop Studio mode
+
+The desktop path may process the complete clip before emitting final curves. This enables:
+- look-ahead/look-behind temporal context
+- bidirectional smoothing
+- improved occlusion recovery
+- more stable neutral estimation
+- stronger expression continuity
+- higher-quality head/eye/facial curve reconstruction
+- optional re-solving after calibration changes
+
+The result must be editable BDFR facial curves, not a baked engine-specific animation.
+
+### Android offline mode
+
+The Android app should support:
+- selecting a prerecorded video from device storage
+- recording a clip and solving it after capture
+- local on-device face tracking/solving when supported
+- exporting a BDFR session/curve file
+- sending the clip or intermediate tracking data to desktop for a higher-quality solve
+- previewing tracking confidence and solved animation before transfer
+
+### Shared output path
+
+```text
+Recorded Video
+      |
+      v
+Face Detection / Tracking
+      |
+      v
+Temporal Analysis
+      |
+      v
+BDFR FaceSolver
+      |
+      v
+Unified Facial Curves
+      |
+      +--> Timeline
+      +--> Retargeter
+      +--> UE5 / MetaHuman
+      +--> Export
+```
+
+Desktop and mobile analysis must converge on the same versioned BDFR facial-frame schema so sessions remain interchangeable.
