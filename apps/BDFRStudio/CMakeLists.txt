@@ -6,6 +6,8 @@ qt_add_executable(BDFRStudio
     main.cpp
     StudioMainWindow.h
     StudioMainWindow.cpp
+    FacePreviewWidget.h
+    FacePreviewWidget.cpp
 )
 
 target_link_libraries(BDFRStudio PRIVATE
