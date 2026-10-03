@@ -19,6 +19,9 @@ on:
       - '.github/workflows/studio-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   windows-studio:
     runs-on: windows-latest
@@ -64,3 +67,36 @@ jobs:
           name: BDFR_Studio_Windows
           path: dist/BDFR_Studio_Windows.zip
           if-no-files-found: error
+
+
+  publish-studio:
+    needs: [windows-studio]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: BDFR_Studio_Windows
+          path: release-assets
+
+      - name: Move latest Studio tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f studio-test-latest "$GITHUB_SHA"
+          git push origin refs/tags/studio-test-latest --force
+
+      - name: Publish Studio prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if ! gh release view studio-test-latest >/dev/null 2>&1; then
+            gh release create studio-test-latest --title "BDFR Studio — Latest Test Build" --notes "Latest tested Windows build of the BDFR Studio desktop GUI." --prerelease
+          fi
+          gh release upload studio-test-latest release-assets/BDFR_Studio_Windows.zip --clobber
