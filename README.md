@@ -18,6 +18,8 @@ The latest hardware-test builds are published on the stable **BDFR Hardware Test
 - **Windows Hardware Test Kit:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/download/hardware-test-latest/BDFR_Windows_Hardware_Test_Kit.zip
 - **Android Hardware Test APK:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/download/hardware-test-latest/BDFR_Android_Hardware_Test.apk
 - **Release page:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/tag/hardware-test-latest
+- **BDFR Studio Windows:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/download/studio-test-latest/BDFR_Studio_Windows.zip
+- **BDFR Studio release page:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/tag/studio-test-latest
 
 These URLs stay the same. When a new test-relevant build passes Windows/Core and Android tests, the release assets are replaced automatically.
 
