@@ -34,8 +34,17 @@ bool LiveSessionReceiver::poll(int timeoutMilliseconds,
                                double localArrivalSeconds,
                                std::string* error) {
     mocap::MocapPacket packet;
-    if (!receiver_.receive(packet, timeoutMilliseconds, error)) {
-        ++stats_.decodeOrReceiveFailures;
+
+    std::string localError;
+    std::string* receiveError = error ? error : &localError;
+    receiveError->clear();
+
+    if (!receiver_.receive(packet, timeoutMilliseconds, receiveError)) {
+        // A normal select/recv timeout is expected while waiting for live
+        // traffic and must not be reported as a transport/decode failure.
+        if (!receiveError->empty()) {
+            ++stats_.decodeOrReceiveFailures;
+        }
         return false;
     }
 
