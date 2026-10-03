@@ -49,6 +49,7 @@ bool LiveSessionReceiver::poll(int timeoutMilliseconds,
     }
 
     ++stats_.packetsReceived;
+    stats_.lastSourceId = packet.sourceId;
 
     if (stats_.hasSequence) {
         if (packet.sequenceNumber > stats_.lastSequenceNumber + 1) {
