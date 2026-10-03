@@ -55,6 +55,7 @@ private:
     void startReceiver();
     void stopReceiver();
     void receiverLoop(std::uint16_t port);
+    void sendLocalTestPacket();
 
     void toggleRecording();
     void saveRecording();
@@ -80,6 +81,7 @@ private:
     QLineEdit* addressEdit_ = nullptr;
     QSpinBox* portSpin_ = nullptr;
     QPushButton* receiverButton_ = nullptr;
+    QPushButton* localTestButton_ = nullptr;
     QPushButton* recordButton_ = nullptr;
 
     QLabel* connectionStateLabel_ = nullptr;
