@@ -64,9 +64,9 @@ jobs:
       - name: Launch packaged Studio self-test
         shell: pwsh
         run: |
-          & "dist/BDFR_Studio_Windows/BDFR Studio.exe" --self-test
-          if ($LASTEXITCODE -ne 0) {
-            throw "BDFR Studio packaged self-test failed with exit code $LASTEXITCODE"
+          $process = Start-Process -FilePath "dist/BDFR_Studio_Windows/BDFR Studio.exe" -ArgumentList "--self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "BDFR Studio packaged self-test failed with exit code $($process.ExitCode)"
           }
 
       - name: Compress Studio package
