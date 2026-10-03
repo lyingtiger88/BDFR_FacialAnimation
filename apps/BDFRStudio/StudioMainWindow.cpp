@@ -1,6 +1,7 @@
 #include "StudioMainWindow.h"
 
 #include "bdfr/runtime/SessionStream.h"
+#include "bdfr/runtime/UdpTransport.h"
 
 #include <QAbstractItemView>
 #include <QCloseEvent>
@@ -147,6 +148,12 @@ QWidget* StudioMainWindow::buildConnectionPanel() {
         }
     });
 
+    localTestButton_ = new QPushButton(QStringLiteral("Local Test"));
+    localTestButton_->setMinimumWidth(100);
+    connect(localTestButton_, &QPushButton::clicked, this, [this] {
+        sendLocalTestPacket();
+    });
+
     recordButton_ = new QPushButton(QStringLiteral("● Record"));
     recordButton_->setEnabled(false);
     recordButton_->setMinimumWidth(110);
@@ -165,6 +172,7 @@ QWidget* StudioMainWindow::buildConnectionPanel() {
     layout->addWidget(new QLabel(QStringLiteral("UDP Port")));
     layout->addWidget(portSpin_);
     layout->addWidget(receiverButton_);
+    layout->addWidget(localTestButton_);
     layout->addWidget(recordButton_);
     layout->addWidget(connectionStateLabel_);
     layout->addSpacing(10);
@@ -456,6 +464,64 @@ void StudioMainWindow::stopReceiver() {
     recordButton_->setText(QStringLiteral("● Record"));
 
     setStatus(QStringLiteral("Receiver stopped"), false);
+}
+
+
+void StudioMainWindow::sendLocalTestPacket() {
+    if (!receiverRunning_) {
+        QMessageBox::information(
+            this,
+            QStringLiteral("BDFR Studio"),
+            QStringLiteral("Start Receiver first, then press Local Test."));
+        return;
+    }
+
+    bdfr::runtime::UdpFrameSender sender;
+    std::string error;
+
+    if (!sender.open(&error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Local test failed"),
+            QString::fromStdString(error));
+        return;
+    }
+
+    bdfr::mocap::MocapPacket packet;
+    packet.sourceId = "bdfr-studio-local-test";
+    packet.sequenceNumber = 1;
+    packet.frame.timestampSeconds = steadySeconds();
+    packet.frame.confidence = 1.0F;
+    packet.frame.curves = {
+        {"jawOpen", 0.64F},
+        {"eyeBlinkLeft", 0.18F},
+        {"eyeBlinkRight", 0.22F},
+        {"mouthSmileLeft", 0.58F},
+        {"mouthSmileRight", 0.61F},
+        {"browInnerUp", 0.37F}
+    };
+    packet.frame.head.pitch = 2.5F;
+    packet.frame.head.yaw = -5.0F;
+    packet.frame.head.roll = 1.0F;
+    packet.frame.gaze.x = 0.12F;
+    packet.frame.gaze.y = -0.08F;
+    packet.frame.gaze.confidence = 0.95F;
+
+    if (!sender.sendTo(
+            "127.0.0.1",
+            static_cast<std::uint16_t>(portSpin_->value()),
+            packet,
+            &error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Local test failed"),
+            QString::fromStdString(error));
+        return;
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("Local BDFP test frame sent through UDP loopback."),
+        5000);
 }
 
 void StudioMainWindow::receiverLoop(std::uint16_t port) {
