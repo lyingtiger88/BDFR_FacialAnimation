@@ -1,0 +1,25 @@
+find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network)
+
+qt_standard_project_setup()
+
+qt_add_executable(BDFRStudio
+    main.cpp
+    StudioMainWindow.h
+    StudioMainWindow.cpp
+)
+
+target_link_libraries(BDFRStudio PRIVATE
+    bdfr_core
+    Qt6::Widgets
+    Qt6::Network
+)
+
+target_include_directories(BDFRStudio PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+set_target_properties(BDFRStudio PROPERTIES
+    WIN32_EXECUTABLE ON
+    MACOSX_BUNDLE ON
+    OUTPUT_NAME "BDFR Studio"
+)
