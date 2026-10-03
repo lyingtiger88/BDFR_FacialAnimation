@@ -1168,6 +1168,8 @@ int main() {
     const auto liveStats = liveReceiver.stats();
     expect(liveStats.packetsReceived == 2,
            "live receiver counts received packets");
+    expect(liveStats.lastSourceId == packet.sourceId,
+           "live receiver exposes the latest source id");
     expect(liveStats.packetsLost == 1,
            "live receiver detects packet sequence loss");
     expect(liveStats.clockOffsetSeconds > 0.0,
