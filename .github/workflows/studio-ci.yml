@@ -60,6 +60,18 @@ jobs:
           }
           Copy-Item $exe dist/BDFR_Studio_Windows/
           windeployqt --release --no-translations --compiler-runtime "dist/BDFR_Studio_Windows/BDFR Studio.exe"
+
+      - name: Launch packaged Studio self-test
+        shell: pwsh
+        run: |
+          & "dist/BDFR_Studio_Windows/BDFR Studio.exe" --self-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "BDFR Studio packaged self-test failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Compress Studio package
+        shell: pwsh
+        run: |
           Compress-Archive -Path dist/BDFR_Studio_Windows/* -DestinationPath dist/BDFR_Studio_Windows.zip -Force
 
       - uses: actions/upload-artifact@v4
