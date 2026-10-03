@@ -23,3 +23,9 @@ set_target_properties(BDFRStudio PROPERTIES
     MACOSX_BUNDLE ON
     OUTPUT_NAME "BDFR Studio"
 )
+
+
+add_test(
+    NAME bdfr_studio_self_test
+    COMMAND BDFRStudio --self-test
+)
