@@ -11,6 +11,18 @@ The long-term objective is a production-grade system that can approach the workf
 
 > BDFR Facial Animation is an independent project. Faceware, Speech Graphics, MetaHuman, Unreal Engine, ARKit and other product names are trademarks of their respective owners. They are mentioned only as interoperability or quality-reference targets.
 
+## Download latest test builds
+
+The latest hardware-test builds are published on the stable **BDFR Hardware Test — Latest** GitHub prerelease.
+
+- **Windows Hardware Test Kit:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/download/hardware-test-latest/BDFR_Windows_Hardware_Test_Kit.zip
+- **Android Hardware Test APK:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/download/hardware-test-latest/BDFR_Android_Hardware_Test.apk
+- **Release page:** https://github.com/lyingtiger88/BDFR_FacialAnimation/releases/tag/hardware-test-latest
+
+These URLs stay the same. When a new test-relevant build passes Windows/Core and Android tests, the release assets are replaced automatically.
+
+See [test download policy](Docs/DOWNLOADS.md) and [hardware live test guide](Docs/HARDWARE_LIVE_TEST.md).
+
 ## Core goals
 
 - FACS-based facial representation
