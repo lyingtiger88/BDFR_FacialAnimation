@@ -1,10 +1,12 @@
 #include "StudioMainWindow.h"
+#include "FacePreviewWidget.h"
 
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
 
 #include <QAbstractItemView>
 #include <QCloseEvent>
+#include <QComboBox>
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -72,7 +74,7 @@ QProgressBar* makeGauge() {
 } // namespace
 
 StudioMainWindow::StudioMainWindow() {
-    setWindowTitle(QStringLiteral("BDFR Studio v0.1 — Live Face Monitor"));
+    setWindowTitle(QStringLiteral("BDFR Studio v0.2 — Live Face Rig"));
     resize(1440, 880);
     setMinimumSize(1080, 680);
 
@@ -129,9 +131,14 @@ QWidget* StudioMainWindow::buildConnectionPanel() {
     auto* box = new QGroupBox(QStringLiteral("Live Receiver"));
     auto* layout = new QHBoxLayout(box);
 
-    addressEdit_ = new QLineEdit(QStringLiteral("0.0.0.0"));
-    addressEdit_->setReadOnly(true);
-    addressEdit_->setMaximumWidth(120);
+    addressCombo_ = new QComboBox();
+    addressCombo_->setEditable(true);
+    addressCombo_->setInsertPolicy(QComboBox::NoInsert);
+    addressCombo_->addItem(QStringLiteral("0.0.0.0"));
+    addressCombo_->setCurrentText(QStringLiteral("0.0.0.0"));
+    addressCombo_->setMinimumWidth(150);
+    addressCombo_->setToolTip(
+        QStringLiteral("0.0.0.0 listens on all adapters. You can also bind to a specific LAN IPv4."));
 
     portSpin_ = new QSpinBox();
     portSpin_->setRange(1, 65535);
@@ -164,17 +171,21 @@ QWidget* StudioMainWindow::buildConnectionPanel() {
     connectionStateLabel_ = new QLabel(QStringLiteral("● OFFLINE"));
     connectionStateLabel_->setMinimumWidth(110);
 
+    sourceLabel_ = new QLabel(QStringLiteral("Source: —"));
+    sourceLabel_->setMinimumWidth(150);
+
     localAddressLabel_ = new QLabel();
     localAddressLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     layout->addWidget(new QLabel(QStringLiteral("Bind")));
-    layout->addWidget(addressEdit_);
+    layout->addWidget(addressCombo_);
     layout->addWidget(new QLabel(QStringLiteral("UDP Port")));
     layout->addWidget(portSpin_);
     layout->addWidget(receiverButton_);
     layout->addWidget(localTestButton_);
     layout->addWidget(recordButton_);
     layout->addWidget(connectionStateLabel_);
+    layout->addWidget(sourceLabel_);
     layout->addSpacing(10);
     layout->addWidget(new QLabel(QStringLiteral("PC IPv4:")));
     layout->addWidget(localAddressLabel_, 1);
@@ -194,7 +205,7 @@ QWidget* StudioMainWindow::buildMonitorPanel() {
     confidenceLabel_ = makeMetricLabel(QStringLiteral("Confidence"), QStringLiteral("0.000"));
     packetsLabel_ = makeMetricLabel(QStringLiteral("Packets"), QStringLiteral("0"));
     lossLabel_ = makeMetricLabel(QStringLiteral("Lost"), QStringLiteral("0"));
-    clockLabel_ = makeMetricLabel(QStringLiteral("Clock offset"), QStringLiteral("0 ms"));
+    clockLabel_ = makeMetricLabel(QStringLiteral("Clock sync"), QStringLiteral("WAIT"));
     recordingLabel_ = makeMetricLabel(QStringLiteral("Recording"), QStringLiteral("OFF"));
 
     metricsLayout->addWidget(fpsLabel_);
@@ -239,7 +250,20 @@ QWidget* StudioMainWindow::buildMonitorPanel() {
     grid->addWidget(headLabel_, 3, 0, 1, 2);
     grid->addWidget(gazeLabel_, 3, 2, 1, 2);
 
-    root->addWidget(expressions);
+    auto* liveRow = new QWidget();
+    auto* liveRowLayout = new QHBoxLayout(liveRow);
+    liveRowLayout->setContentsMargins(0, 0, 0, 0);
+    liveRowLayout->setSpacing(10);
+
+    auto* previewBox = new QGroupBox(QStringLiteral("Face Rig Preview"));
+    auto* previewLayout = new QVBoxLayout(previewBox);
+    facePreview_ = new FacePreviewWidget();
+    previewLayout->addWidget(facePreview_, 1);
+
+    liveRowLayout->addWidget(previewBox, 1);
+    liveRowLayout->addWidget(expressions, 1);
+
+    root->addWidget(liveRow, 1);
 
     auto* help = new QFrame();
     auto* helpLayout = new QVBoxLayout(help);
@@ -391,20 +415,50 @@ void StudioMainWindow::applyTheme() {
 void StudioMainWindow::refreshLocalAddresses() {
     QStringList addresses;
 
-    const auto allAddresses = QNetworkInterface::allAddresses();
-    for (const QHostAddress& address : allAddresses) {
-        if (address.protocol() != QAbstractSocket::IPv4Protocol ||
-            address.isLoopback()) {
+    const auto interfaces = QNetworkInterface::allInterfaces();
+    for (const QNetworkInterface& interface : interfaces) {
+        if (!(interface.flags() & QNetworkInterface::IsUp) ||
+            !(interface.flags() & QNetworkInterface::IsRunning) ||
+            (interface.flags() & QNetworkInterface::IsLoopBack)) {
             continue;
         }
 
-        addresses.push_back(address.toString());
+        for (const QNetworkAddressEntry& entry : interface.addressEntries()) {
+            const QHostAddress address = entry.ip();
+            if (address.protocol() != QAbstractSocket::IPv4Protocol ||
+                address.isLoopback()) {
+                continue;
+            }
+
+            const QString text = address.toString();
+            if (!text.startsWith(QStringLiteral("169.254."))) {
+                addresses.push_back(text);
+            }
+        }
+    }
+
+    addresses.removeDuplicates();
+
+    const QString previous =
+        addressCombo_ ? addressCombo_->currentText().trimmed() : QStringLiteral("0.0.0.0");
+
+    if (addressCombo_) {
+        addressCombo_->blockSignals(true);
+        addressCombo_->clear();
+        addressCombo_->addItem(QStringLiteral("0.0.0.0"));
+        for (const QString& address : addresses) {
+            addressCombo_->addItem(address);
+        }
+
+        const int previousIndex = addressCombo_->findText(previous);
+        addressCombo_->setCurrentText(
+            previousIndex >= 0 ? previous : QStringLiteral("0.0.0.0"));
+        addressCombo_->blockSignals(false);
     }
 
     if (addresses.isEmpty()) {
-        localAddressLabel_->setText(QStringLiteral("No LAN IPv4 detected"));
+        localAddressLabel_->setText(QStringLiteral("No active LAN IPv4 detected"));
     } else {
-        addresses.removeDuplicates();
         localAddressLabel_->setText(addresses.join(QStringLiteral("   |   ")));
     }
 }
@@ -415,6 +469,17 @@ void StudioMainWindow::startReceiver() {
     }
 
     const int port = portSpin_->value();
+    const QString bindAddress = addressCombo_->currentText().trimmed();
+
+    QHostAddress parsedBind;
+    if (bindAddress.isEmpty() ||
+        (!parsedBind.setAddress(bindAddress) && bindAddress != QStringLiteral("0.0.0.0"))) {
+        QMessageBox::warning(
+            this,
+            QStringLiteral("Invalid Bind IP"),
+            QStringLiteral("Enter 0.0.0.0 or a valid local IPv4 address."));
+        return;
+    }
 
     {
         std::lock_guard<std::mutex> lock(sharedMutex_);
@@ -426,6 +491,7 @@ void StudioMainWindow::startReceiver() {
     receiverRunning_ = true;
     receiverButton_->setText(QStringLiteral("Stop Receiver"));
     portSpin_->setEnabled(false);
+    addressCombo_->setEnabled(false);
     recordButton_->setEnabled(true);
 
     fpsTimer_.restart();
@@ -435,10 +501,13 @@ void StudioMainWindow::startReceiver() {
     receiverThread_ = std::thread(
         &StudioMainWindow::receiverLoop,
         this,
-        static_cast<std::uint16_t>(port));
+        static_cast<std::uint16_t>(port),
+        bindAddress.toStdString());
 
     setStatus(
-        QStringLiteral("Starting UDP receiver on port %1…").arg(port),
+        QStringLiteral("Starting UDP receiver on %1:%2…")
+            .arg(bindAddress)
+            .arg(port),
         true);
 }
 
@@ -460,6 +529,7 @@ void StudioMainWindow::stopReceiver() {
 
     receiverButton_->setText(QStringLiteral("Start Receiver"));
     portSpin_->setEnabled(true);
+    addressCombo_->setEnabled(true);
     recordButton_->setEnabled(false);
     recordButton_->setText(QStringLiteral("● Record"));
 
@@ -507,8 +577,14 @@ void StudioMainWindow::sendLocalTestPacket() {
     packet.frame.gaze.y = -0.08F;
     packet.frame.gaze.confidence = 0.95F;
 
+    const QString bindAddress = addressCombo_->currentText().trimmed();
+    const std::string testHost =
+        (bindAddress.isEmpty() || bindAddress == QStringLiteral("0.0.0.0"))
+            ? std::string("127.0.0.1")
+            : bindAddress.toStdString();
+
     if (!sender.sendTo(
-            "127.0.0.1",
+            testHost,
             static_cast<std::uint16_t>(portSpin_->value()),
             packet,
             &error)) {
@@ -524,11 +600,13 @@ void StudioMainWindow::sendLocalTestPacket() {
         5000);
 }
 
-void StudioMainWindow::receiverLoop(std::uint16_t port) {
+void StudioMainWindow::receiverLoop(
+    std::uint16_t port,
+    std::string bindAddress) {
     bdfr::runtime::LiveSessionReceiver receiver(0.035);
     std::string error;
 
-    if (!receiver.open(port, "0.0.0.0", &error)) {
+    if (!receiver.open(port, bindAddress, &error)) {
         std::lock_guard<std::mutex> lock(sharedMutex_);
         shared_.error = error;
         shared_.receiverOpen = false;
@@ -593,6 +671,7 @@ void StudioMainWindow::refreshUi() {
 
         receiverButton_->setText(QStringLiteral("Start Receiver"));
         portSpin_->setEnabled(true);
+        addressCombo_->setEnabled(true);
         recordButton_->setEnabled(false);
 
         if (!snapshot.error.empty()) {
@@ -647,10 +726,25 @@ void StudioMainWindow::refreshUi() {
                        "<span style='font-size:18pt;font-weight:600;'>%1</span>")
             .arg(snapshot.stats.packetsLost));
 
+    const bool clockReady = snapshot.stats.packetsReceived > 0;
+    const double rawOffsetMs = snapshot.stats.clockOffsetSeconds * 1000.0;
+
     clockLabel_->setText(
-        QStringLiteral("<span style='color:#8f9bad;'>Clock offset</span><br>"
-                       "<span style='font-size:18pt;font-weight:600;'>%1 ms</span>")
-            .arg(snapshot.stats.clockOffsetSeconds * 1000.0, 0, 'f', 1));
+        QStringLiteral("<span style='color:#8f9bad;'>Clock sync</span><br>"
+                       "<span style='font-size:18pt;font-weight:600;'>%1</span>")
+            .arg(clockReady ? QStringLiteral("SYNCED") : QStringLiteral("WAIT")));
+
+    clockLabel_->setToolTip(
+        clockReady
+            ? QStringLiteral("Remote-to-local monotonic offset: %1 ms. Large values are normal across different devices.")
+                  .arg(rawOffsetMs, 0, 'f', 1)
+            : QStringLiteral("Waiting for the first remote frame."));
+
+    sourceLabel_->setText(
+        snapshot.stats.lastSourceId.empty()
+            ? QStringLiteral("Source: —")
+            : QStringLiteral("Source: %1")
+                  .arg(QString::fromStdString(snapshot.stats.lastSourceId)));
 
     recordingLabel_->setText(
         QStringLiteral("<span style='color:#8f9bad;'>Recording</span><br>"
@@ -688,6 +782,9 @@ void StudioMainWindow::refreshUi() {
             .arg(frame.gaze.confidence, 0, 'f', 3));
 
     updateCurveTable(frame);
+    if (facePreview_) {
+        facePreview_->setFrame(frame);
+    }
 }
 
 void StudioMainWindow::toggleRecording() {
