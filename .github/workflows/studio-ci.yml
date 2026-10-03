@@ -29,10 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt 6.11.2
+      - name: Install Qt 6.8 LTS
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.2'
+          version: '6.8.*'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
