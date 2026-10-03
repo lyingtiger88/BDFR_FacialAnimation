@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 
+class QCloseEvent;
 class QLabel;
 class QLineEdit;
 class QPushButton;
