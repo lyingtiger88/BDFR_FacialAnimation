@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BDFR_BUILD_STUDIO "Build the Qt desktop BDFR Studio application" OFF)
+option(BDFR_ENABLE_OPENRIGLOGIC "Enable Epic OpenRigLogic MetaHuman DNA runtime" OFF)
 
 add_library(bdfr_core
     src/CurveRegistry.cpp
@@ -110,6 +111,54 @@ add_test(NAME bdfr_initial_smoke_tests COMMAND bdfr_initial_smoke_tests)
 
 add_executable(bdfr_live_receiver tools/bdfr_live_receiver.cpp)
 target_link_libraries(bdfr_live_receiver PRIVATE bdfr_core)
+
+
+# Optional MetaHuman / OpenRigLogic integration.
+if(BDFR_ENABLE_OPENRIGLOGIC)
+    include(FetchContent)
+
+    # Keep the third-party build focused on the runtime libraries BDFR needs.
+    set(RL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(RL_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(RL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(RL_BUILD_PYTHON_WRAPPER "" CACHE STRING "" FORCE)
+    set(READ_ONLY_SOURCE_TREE ON CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(RL_LIBRARY_TYPE STATIC CACHE STRING "" FORCE)
+
+    FetchContent_Declare(
+        openriglogic
+        GIT_REPOSITORY https://github.com/EpicGames/OpenRigLogic.git
+        GIT_TAG 5.8
+        GIT_SHALLOW TRUE
+    )
+
+    FetchContent_MakeAvailable(openriglogic)
+
+    add_library(bdfr_metahuman
+        src/MetaHumanRigOpenRigLogic.cpp
+    )
+    target_compile_definitions(bdfr_metahuman PUBLIC BDFR_HAS_OPENRIGLOGIC=1)
+    target_link_libraries(bdfr_metahuman PUBLIC bdfr_core RigLogic::riglogic4)
+else()
+    add_library(bdfr_metahuman
+        src/MetaHumanRigStub.cpp
+    )
+    target_compile_definitions(bdfr_metahuman PUBLIC BDFR_HAS_OPENRIGLOGIC=0)
+    target_link_libraries(bdfr_metahuman PUBLIC bdfr_core)
+endif()
+
+target_include_directories(bdfr_metahuman PUBLIC include)
+
+if(MSVC)
+    target_compile_options(bdfr_metahuman PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(bdfr_metahuman PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(bdfr_metahuman_probe tools/bdfr_metahuman_probe.cpp)
+target_link_libraries(bdfr_metahuman_probe PRIVATE bdfr_metahuman)
+add_test(NAME bdfr_metahuman_probe_backend COMMAND bdfr_metahuman_probe)
 
 
 if(BDFR_BUILD_STUDIO)
