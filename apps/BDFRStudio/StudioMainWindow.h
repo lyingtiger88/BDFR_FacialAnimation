@@ -3,6 +3,7 @@
 #include "bdfr/core/FacialTypes.h"
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/LiveSessionReceiver.h"
+#include "bdfr/metahuman/MetaHumanRig.h"
 
 #include <QElapsedTimer>
 #include <QMainWindow>
@@ -58,6 +59,9 @@ private:
     void receiverLoop(std::uint16_t port, std::string bindAddress);
     void sendLocalTestPacket();
 
+    void loadMetaHumanDna();
+    void updateMetaHumanEvaluation(const bdfr::FacialFrame& frame);
+
     void toggleRecording();
     void saveRecording();
 
@@ -84,6 +88,7 @@ private:
     QPushButton* receiverButton_ = nullptr;
     QPushButton* localTestButton_ = nullptr;
     QPushButton* recordButton_ = nullptr;
+    QPushButton* loadDnaButton_ = nullptr;
 
     QLabel* connectionStateLabel_ = nullptr;
     QLabel* sourceLabel_ = nullptr;
@@ -96,6 +101,9 @@ private:
     QLabel* recordingLabel_ = nullptr;
     QLabel* headLabel_ = nullptr;
     QLabel* gazeLabel_ = nullptr;
+    QLabel* metaHumanStatusLabel_ = nullptr;
+    QLabel* metaHumanStatsLabel_ = nullptr;
+    QLabel* metaHumanEvalLabel_ = nullptr;
 
     FacePreviewWidget* facePreview_ = nullptr;
 
@@ -108,4 +116,6 @@ private:
 
     QTableWidget* curvesTable_ = nullptr;
     QTreeWidget* projectTree_ = nullptr;
+
+    bdfr::metahuman::MetaHumanRigRuntime metaHumanRig_;
 };
