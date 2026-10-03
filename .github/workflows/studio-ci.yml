@@ -42,9 +42,9 @@ jobs:
         shell: pwsh
         run: cmake -S . -B build-studio -DBDFR_BUILD_STUDIO=ON
 
-      - name: Build Studio
+      - name: Build Studio and tests
         shell: pwsh
-        run: cmake --build build-studio --config Release --target BDFRStudio
+        run: cmake --build build-studio --config Release --parallel
 
       - name: Run Core Tests
         shell: pwsh
