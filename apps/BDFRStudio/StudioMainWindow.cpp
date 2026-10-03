@@ -2,6 +2,7 @@
 
 #include "bdfr/runtime/SessionStream.h"
 
+#include <QAbstractItemView>
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QFileDialog>
