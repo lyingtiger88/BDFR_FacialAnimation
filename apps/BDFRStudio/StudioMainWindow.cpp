@@ -74,7 +74,7 @@ QProgressBar* makeGauge() {
 } // namespace
 
 StudioMainWindow::StudioMainWindow() {
-    setWindowTitle(QStringLiteral("BDFR Studio v0.2 — Live Face Rig"));
+    setWindowTitle(QStringLiteral("BDFR Studio v0.3 — MetaHuman Rig"));
     resize(1440, 880);
     setMinimumSize(1080, 680);
 
@@ -331,14 +331,51 @@ QWidget* StudioMainWindow::buildProjectPanel() {
 
     auto* info = new QLabel(
         QStringLiteral(
-            "v0.1 live workspace\n"
+            "Live workspace\n"
             "• UDP/BDFP receiver\n"
             "• 52-curve monitor\n"
             "• packet diagnostics\n"
             "• BDFS recording"));
     info->setWordWrap(true);
 
+    auto* metaHumanBox =
+        new QGroupBox(QStringLiteral("MetaHuman / OpenRigLogic"));
+
+    auto* metaLayout =
+        new QVBoxLayout(metaHumanBox);
+
+    loadDnaButton_ =
+        new QPushButton(QStringLiteral("Load MetaHuman DNA…"));
+
+    connect(loadDnaButton_, &QPushButton::clicked, this, [this] {
+        loadMetaHumanDna();
+    });
+
+    metaHumanStatusLabel_ = new QLabel(
+        bdfr::metahuman::MetaHumanRigRuntime::backendAvailable()
+            ? QStringLiteral("Backend: Epic OpenRigLogic 5.8")
+            : QStringLiteral("Backend: unavailable in this build"));
+
+    metaHumanStatsLabel_ =
+        new QLabel(QStringLiteral("No DNA loaded"));
+
+    metaHumanStatsLabel_->setWordWrap(true);
+
+    metaHumanEvalLabel_ =
+        new QLabel(QStringLiteral("Rig evaluation: waiting"));
+
+    metaHumanEvalLabel_->setWordWrap(true);
+
+    loadDnaButton_->setEnabled(
+        bdfr::metahuman::MetaHumanRigRuntime::backendAvailable());
+
+    metaLayout->addWidget(loadDnaButton_);
+    metaLayout->addWidget(metaHumanStatusLabel_);
+    metaLayout->addWidget(metaHumanStatsLabel_);
+    metaLayout->addWidget(metaHumanEvalLabel_);
+
     layout->addWidget(projectTree_, 1);
+    layout->addWidget(metaHumanBox);
     layout->addWidget(info);
 
     return widget;
@@ -785,6 +822,134 @@ void StudioMainWindow::refreshUi() {
     if (facePreview_) {
         facePreview_->setFrame(frame);
     }
+
+    updateMetaHumanEvaluation(frame);
+}
+
+
+void StudioMainWindow::loadMetaHumanDna() {
+    if (!bdfr::metahuman::MetaHumanRigRuntime::backendAvailable()) {
+        QMessageBox::warning(
+            this,
+            QStringLiteral("MetaHuman unavailable"),
+            QStringLiteral(
+                "This Studio build does not include OpenRigLogic."));
+        return;
+    }
+
+    const QString fileName =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Load MetaHuman DNA"),
+            QString(),
+            QStringLiteral("MetaHuman DNA (*.dna);;All files (*.*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    const QByteArray utf8Path =
+        fileName.toUtf8();
+
+    std::string error;
+
+    if (!metaHumanRig_.loadDna(
+            std::string(
+                utf8Path.constData(),
+                static_cast<std::size_t>(utf8Path.size())),
+            &error)) {
+
+        metaHumanStatusLabel_->setText(
+            QStringLiteral("DNA load failed"));
+
+        metaHumanStatsLabel_->setText(
+            QString::fromStdString(error));
+
+        QMessageBox::critical(
+            this,
+            QStringLiteral("MetaHuman DNA load failed"),
+            QString::fromStdString(error));
+
+        return;
+    }
+
+    const auto& info =
+        metaHumanRig_.info();
+
+    metaHumanStatusLabel_->setText(
+        QStringLiteral("DNA READY — %1")
+            .arg(QString::fromStdString(
+                info.characterName.empty()
+                    ? std::string("Unnamed MetaHuman")
+                    : info.characterName)));
+
+    metaHumanStatsLabel_->setText(
+        QStringLiteral(
+            "LODs %1  •  GUI %2  •  Raw %3  •  Joints %4\n"
+            "BlendShapes %5  •  Animated Maps %6  •  Meshes %7")
+            .arg(info.lodCount)
+            .arg(info.guiControlCount)
+            .arg(info.rawControlCount)
+            .arg(info.jointCount)
+            .arg(info.blendShapeChannelCount)
+            .arg(info.animatedMapCount)
+            .arg(info.meshCount));
+
+    metaHumanEvalLabel_->setText(
+        QStringLiteral("Rig evaluation: waiting for a facial frame"));
+
+    statusBar()->showMessage(
+        QStringLiteral("Loaded MetaHuman DNA: %1")
+            .arg(fileName),
+        8000);
+}
+
+void StudioMainWindow::updateMetaHumanEvaluation(
+    const bdfr::FacialFrame& frame) {
+
+    if (!metaHumanRig_.isLoaded()) {
+        return;
+    }
+
+    bdfr::metahuman::MetaHumanRigOutput output;
+    std::string error;
+
+    if (!metaHumanRig_.evaluate(
+            frame,
+            output,
+            &error)) {
+
+        metaHumanEvalLabel_->setText(
+            QStringLiteral("Rig evaluation error: %1")
+                .arg(QString::fromStdString(error)));
+        return;
+    }
+
+    std::size_t activeBlendShapes = 0;
+    for (const auto& [name, value] : output.blendShapes) {
+        (void)name;
+        if (std::fabs(value) > 0.0001F) {
+            ++activeBlendShapes;
+        }
+    }
+
+    std::size_t activeAnimatedMaps = 0;
+    for (const auto& [name, value] : output.animatedMaps) {
+        (void)name;
+        if (std::fabs(value) > 0.0001F) {
+            ++activeAnimatedMaps;
+        }
+    }
+
+    metaHumanEvalLabel_->setText(
+        QStringLiteral(
+            "LIVE RIG  •  mapped %1/%2 inputs\n"
+            "joint values %3  •  active blendshapes %4  •  active maps %5")
+            .arg(output.mappedInputCurves)
+            .arg(frame.curves.size())
+            .arg(output.jointValues.size())
+            .arg(activeBlendShapes)
+            .arg(activeAnimatedMaps));
 }
 
 void StudioMainWindow::toggleRecording() {
