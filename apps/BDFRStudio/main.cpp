@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QFont>
+#include <QTimer>
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
@@ -15,8 +16,19 @@ int main(int argc, char** argv) {
     font.setPointSize(10);
     app.setFont(font);
 
-    StudioMainWindow window;
-    window.show();
+    const QStringList arguments = app.arguments();
 
+    if (arguments.contains(QStringLiteral("--version"))) {
+        return 0;
+    }
+
+    StudioMainWindow window;
+
+    if (arguments.contains(QStringLiteral("--self-test"))) {
+        QTimer::singleShot(250, &app, &QCoreApplication::quit);
+        return app.exec();
+    }
+
+    window.show();
     return app.exec();
 }
