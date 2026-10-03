@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(BDFR_BUILD_STUDIO "Build the Qt desktop BDFR Studio application" OFF)
+
 add_library(bdfr_core
     src/CurveRegistry.cpp
     src/BinaryCodec.cpp
@@ -108,3 +110,8 @@ add_test(NAME bdfr_initial_smoke_tests COMMAND bdfr_initial_smoke_tests)
 
 add_executable(bdfr_live_receiver tools/bdfr_live_receiver.cpp)
 target_link_libraries(bdfr_live_receiver PRIVATE bdfr_core)
+
+
+if(BDFR_BUILD_STUDIO)
+    add_subdirectory(apps/BDFRStudio)
+endif()
