@@ -14,9 +14,10 @@
 #include <thread>
 #include <vector>
 
+class FacePreviewWidget;
 class QCloseEvent;
+class QComboBox;
 class QLabel;
-class QLineEdit;
 class QPushButton;
 class QProgressBar;
 class QSpinBox;
@@ -54,7 +55,7 @@ private:
 
     void startReceiver();
     void stopReceiver();
-    void receiverLoop(std::uint16_t port);
+    void receiverLoop(std::uint16_t port, std::string bindAddress);
     void sendLocalTestPacket();
 
     void toggleRecording();
@@ -78,13 +79,14 @@ private:
     std::uint64_t lastDeliveredFrames_ = 0;
     double displayedFps_ = 0.0;
 
-    QLineEdit* addressEdit_ = nullptr;
+    QComboBox* addressCombo_ = nullptr;
     QSpinBox* portSpin_ = nullptr;
     QPushButton* receiverButton_ = nullptr;
     QPushButton* localTestButton_ = nullptr;
     QPushButton* recordButton_ = nullptr;
 
     QLabel* connectionStateLabel_ = nullptr;
+    QLabel* sourceLabel_ = nullptr;
     QLabel* localAddressLabel_ = nullptr;
     QLabel* fpsLabel_ = nullptr;
     QLabel* confidenceLabel_ = nullptr;
@@ -94,6 +96,8 @@ private:
     QLabel* recordingLabel_ = nullptr;
     QLabel* headLabel_ = nullptr;
     QLabel* gazeLabel_ = nullptr;
+
+    FacePreviewWidget* facePreview_ = nullptr;
 
     QProgressBar* jawGauge_ = nullptr;
     QProgressBar* blinkLeftGauge_ = nullptr;
