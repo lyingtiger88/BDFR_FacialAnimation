@@ -15,6 +15,7 @@ struct LiveReceiverStats {
     std::uint64_t decodeOrReceiveFailures = 0;
     std::uint64_t lastSequenceNumber = 0;
     bool hasSequence = false;
+    std::string lastSourceId;
     double clockOffsetSeconds = 0.0;
     std::size_t bufferedFrames = 0;
 };
