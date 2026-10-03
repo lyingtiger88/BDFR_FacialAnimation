@@ -1,0 +1,39 @@
+name: MetaHuman Rig CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'include/bdfr/metahuman/**'
+      - 'src/MetaHumanRig*'
+      - 'tools/bdfr_metahuman_probe.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/metahuman-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'include/bdfr/metahuman/**'
+      - 'src/MetaHumanRig*'
+      - 'tools/bdfr_metahuman_probe.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/metahuman-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  openriglogic:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OpenRigLogic integration
+        run: cmake -S . -B build-metahuman -DBDFR_ENABLE_OPENRIGLOGIC=ON
+
+      - name: Build MetaHuman adapter
+        run: cmake --build build-metahuman --config Release --target bdfr_metahuman_probe --parallel
+
+      - name: Probe backend
+        run: ctest --test-dir build-metahuman -C Release -R bdfr_metahuman_probe_backend --output-on-failure
