@@ -315,3 +315,24 @@ Suggested GitHub description:
 Suggested topics:
 
 `facial-animation`, `facs`, `face-capture`, `facial-mocap`, `lip-sync`, `audio-to-face`, `speech-animation`, `unreal-engine`, `unreal-engine-5`, `metahuman`, `arkit`, `blendshapes`, `computer-vision`, `animation`, `ai-npc`
+
+
+## MetaHuman / OpenRigLogic
+
+BDFR Studio test builds now include the optional MetaHuman runtime based on Epic Games OpenRigLogic 5.8.
+
+Current integration:
+
+- MetaHuman DNA loading
+- RigLogic / RigInstance initialization
+- BDFR / ARKit-style curve to DNA raw-control mapping foundation
+- realtime rig evaluation from live FacialFrame data
+- joint output extraction
+- named blendshape output extraction
+- named animated-map output extraction
+- Windows + Linux adapter CI
+- Windows Studio package with OpenRigLogic enabled
+
+OpenRigLogic remains isolated from the engine-independent BDFR Core.
+
+See [MetaHuman / OpenRigLogic integration](Docs/METAHUMAN_OPENRIGLOGIC.md).
