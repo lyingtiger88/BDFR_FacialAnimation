@@ -19,6 +19,10 @@ on:
       - '.github/workflows/studio-ci.yml'
   workflow_dispatch:
 
+concurrency:
+  group: bdfr-studio-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
