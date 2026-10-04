@@ -7,6 +7,8 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
+#include <QPoint>
+#include <QVector3D>
 
 #include <memory>
 #include <unordered_map>
