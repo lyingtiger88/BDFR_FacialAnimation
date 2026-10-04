@@ -16,6 +16,7 @@
 #include <vector>
 
 class FacePreviewWidget;
+class MetaHumanViewportWidget;
 class QCloseEvent;
 class QComboBox;
 class QLabel;
@@ -25,6 +26,7 @@ class QSpinBox;
 class QTableWidget;
 class QTimer;
 class QTreeWidget;
+class QTabWidget;
 
 class StudioMainWindow final : public QMainWindow {
 public:
@@ -60,6 +62,7 @@ private:
     void sendLocalTestPacket();
 
     void loadMetaHumanDna();
+    void loadMetaHumanBaseColor();
     void updateMetaHumanEvaluation(const bdfr::FacialFrame& frame);
 
     void toggleRecording();
@@ -89,6 +92,7 @@ private:
     QPushButton* localTestButton_ = nullptr;
     QPushButton* recordButton_ = nullptr;
     QPushButton* loadDnaButton_ = nullptr;
+    QPushButton* loadTextureButton_ = nullptr;
 
     QLabel* connectionStateLabel_ = nullptr;
     QLabel* sourceLabel_ = nullptr;
@@ -106,6 +110,8 @@ private:
     QLabel* metaHumanEvalLabel_ = nullptr;
 
     FacePreviewWidget* facePreview_ = nullptr;
+    MetaHumanViewportWidget* metaHumanViewport_ = nullptr;
+    QTabWidget* previewTabs_ = nullptr;
 
     QProgressBar* jawGauge_ = nullptr;
     QProgressBar* blinkLeftGauge_ = nullptr;
