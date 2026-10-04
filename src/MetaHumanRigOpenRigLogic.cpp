@@ -350,6 +350,238 @@ MetaHumanRigRuntime::rawControlNames() const {
     return impl_->rawNames;
 }
 
+std::vector<std::string>
+MetaHumanRigRuntime::meshNames() const {
+    std::vector<std::string> result;
+
+    if (!isLoaded()) {
+        return result;
+    }
+
+    result.reserve(impl_->reader->getMeshCount());
+
+    for (std::uint16_t i = 0;
+         i < impl_->reader->getMeshCount();
+         ++i) {
+        result.emplace_back(
+            impl_->reader->getMeshName(i).c_str());
+    }
+
+    return result;
+}
+
+bool MetaHumanRigRuntime::extractMesh(
+    std::uint16_t meshIndex,
+    MetaHumanMeshData& output,
+    std::string* error) const {
+
+    output = {};
+
+    if (!isLoaded()) {
+        if (error) {
+            *error = "No MetaHuman DNA is loaded.";
+        }
+        return false;
+    }
+
+    if (meshIndex >= impl_->reader->getMeshCount()) {
+        if (error) {
+            *error = "MetaHuman mesh index is out of range.";
+        }
+        return false;
+    }
+
+    output.name =
+        impl_->reader->getMeshName(meshIndex).c_str();
+
+    const std::uint32_t layoutCount =
+        impl_->reader->getVertexLayoutCount(meshIndex);
+
+    output.vertices.reserve(layoutCount);
+
+    std::unordered_map<
+        std::uint32_t,
+        std::vector<std::uint32_t>>
+        sourcePositionToRenderVertices;
+
+    for (std::uint32_t layoutIndex = 0;
+         layoutIndex < layoutCount;
+         ++layoutIndex) {
+
+        const auto layout =
+            impl_->reader->getVertexLayout(
+                meshIndex,
+                layoutIndex);
+
+        const auto position =
+            impl_->reader->getVertexPosition(
+                meshIndex,
+                layout.position);
+
+        MetaHumanMeshVertex vertex;
+        vertex.px = position.x;
+        vertex.py = position.y;
+        vertex.pz = position.z;
+        vertex.sourcePositionIndex = layout.position;
+
+        if (layout.normal <
+            impl_->reader->getVertexNormalCount(meshIndex)) {
+            const auto normal =
+                impl_->reader->getVertexNormal(
+                    meshIndex,
+                    layout.normal);
+
+            vertex.nx = normal.x;
+            vertex.ny = normal.y;
+            vertex.nz = normal.z;
+        }
+
+        if (layout.textureCoordinate <
+            impl_->reader->getVertexTextureCoordinateCount(
+                meshIndex)) {
+            const auto uv =
+                impl_->reader->getVertexTextureCoordinate(
+                    meshIndex,
+                    layout.textureCoordinate);
+
+            vertex.u = uv.u;
+            vertex.v = uv.v;
+        }
+
+        const auto renderVertexIndex =
+            static_cast<std::uint32_t>(
+                output.vertices.size());
+
+        output.vertices.push_back(vertex);
+
+        sourcePositionToRenderVertices[
+            layout.position].push_back(
+                renderVertexIndex);
+    }
+
+    const std::uint32_t faceCount =
+        impl_->reader->getFaceCount(meshIndex);
+
+    for (std::uint32_t faceIndex = 0;
+         faceIndex < faceCount;
+         ++faceIndex) {
+
+        const auto face =
+            impl_->reader->getFaceVertexLayoutIndices(
+                meshIndex,
+                faceIndex);
+
+        if (face.size() < 3) {
+            continue;
+        }
+
+        // DNA faces may be polygons. Fan triangulation is valid for the
+        // authored MetaHuman topology used for viewport preview.
+        for (std::size_t i = 1;
+             i + 1 < face.size();
+             ++i) {
+            output.indices.push_back(face[0]);
+            output.indices.push_back(face[i]);
+            output.indices.push_back(face[i + 1]);
+        }
+    }
+
+    const std::uint16_t targetCount =
+        impl_->reader->getBlendShapeTargetCount(
+            meshIndex);
+
+    output.morphTargets.reserve(targetCount);
+
+    for (std::uint16_t targetIndex = 0;
+         targetIndex < targetCount;
+         ++targetIndex) {
+
+        const std::uint16_t channelIndex =
+            impl_->reader->getBlendShapeChannelIndex(
+                meshIndex,
+                targetIndex);
+
+        MetaHumanMorphTarget target;
+
+        if (channelIndex <
+            impl_->reader->getBlendShapeChannelCount()) {
+            target.channelName =
+                impl_->reader
+                    ->getBlendShapeChannelName(
+                        channelIndex)
+                    .c_str();
+        } else {
+            target.channelName =
+                "BlendShape_" +
+                std::to_string(channelIndex);
+        }
+
+        const auto sourceIndices =
+            impl_->reader
+                ->getBlendShapeTargetVertexIndices(
+                    meshIndex,
+                    targetIndex);
+
+        const std::uint32_t deltaCount =
+            impl_->reader
+                ->getBlendShapeTargetDeltaCount(
+                    meshIndex,
+                    targetIndex);
+
+        const std::size_t count =
+            std::min<std::size_t>(
+                sourceIndices.size(),
+                deltaCount);
+
+        for (std::size_t deltaIndex = 0;
+             deltaIndex < count;
+             ++deltaIndex) {
+
+            const auto delta =
+                impl_->reader
+                    ->getBlendShapeTargetDelta(
+                        meshIndex,
+                        targetIndex,
+                        static_cast<std::uint32_t>(
+                            deltaIndex));
+
+            const auto sourcePositionIndex =
+                sourceIndices[deltaIndex];
+
+            const auto renderIt =
+                sourcePositionToRenderVertices.find(
+                    sourcePositionIndex);
+
+            if (renderIt ==
+                sourcePositionToRenderVertices.end()) {
+                continue;
+            }
+
+            for (const auto renderVertexIndex :
+                 renderIt->second) {
+                MetaHumanMorphDelta morphDelta;
+                morphDelta.vertexIndex =
+                    renderVertexIndex;
+                morphDelta.dx = delta.x;
+                morphDelta.dy = delta.y;
+                morphDelta.dz = delta.z;
+
+                target.deltas.push_back(
+                    morphDelta);
+            }
+        }
+
+        output.morphTargets.push_back(
+            std::move(target));
+    }
+
+    if (error) {
+        error->clear();
+    }
+
+    return true;
+}
+
 std::vector<std::pair<std::string, std::uint16_t>>
 MetaHumanRigRuntime::resolveMappings(
     const CurveMap& curves) const {
