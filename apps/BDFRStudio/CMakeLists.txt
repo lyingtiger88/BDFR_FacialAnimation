@@ -1,4 +1,4 @@
-find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network OpenGL OpenGLWidgets)
 
 qt_standard_project_setup()
 
@@ -8,6 +8,8 @@ qt_add_executable(BDFRStudio
     StudioMainWindow.cpp
     FacePreviewWidget.h
     FacePreviewWidget.cpp
+    MetaHumanViewportWidget.h
+    MetaHumanViewportWidget.cpp
 )
 
 target_link_libraries(BDFRStudio PRIVATE
@@ -15,6 +17,8 @@ target_link_libraries(BDFRStudio PRIVATE
     bdfr_metahuman
     Qt6::Widgets
     Qt6::Network
+    Qt6::OpenGL
+    Qt6::OpenGLWidgets
 )
 
 target_include_directories(BDFRStudio PRIVATE
