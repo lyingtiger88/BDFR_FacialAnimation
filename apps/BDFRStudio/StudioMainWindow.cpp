@@ -1,5 +1,6 @@
 #include "StudioMainWindow.h"
 #include "FacePreviewWidget.h"
+#include "MetaHumanViewportWidget.h"
 
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
@@ -26,6 +27,7 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTimer>
+#include <QTabWidget>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
@@ -255,10 +257,17 @@ QWidget* StudioMainWindow::buildMonitorPanel() {
     liveRowLayout->setContentsMargins(0, 0, 0, 0);
     liveRowLayout->setSpacing(10);
 
-    auto* previewBox = new QGroupBox(QStringLiteral("Face Rig Preview"));
+    auto* previewBox = new QGroupBox(QStringLiteral("Face Preview"));
     auto* previewLayout = new QVBoxLayout(previewBox);
+
+    previewTabs_ = new QTabWidget();
     facePreview_ = new FacePreviewWidget();
-    previewLayout->addWidget(facePreview_, 1);
+    metaHumanViewport_ = new MetaHumanViewportWidget();
+
+    previewTabs_->addTab(facePreview_, QStringLiteral("BDFR Rig"));
+    previewTabs_->addTab(metaHumanViewport_, QStringLiteral("MetaHuman 3D"));
+
+    previewLayout->addWidget(previewTabs_, 1);
 
     liveRowLayout->addWidget(previewBox, 1);
     liveRowLayout->addWidget(expressions, 1);
@@ -351,6 +360,15 @@ QWidget* StudioMainWindow::buildProjectPanel() {
         loadMetaHumanDna();
     });
 
+    loadTextureButton_ =
+        new QPushButton(QStringLiteral("Load BaseColor Texture…"));
+
+    loadTextureButton_->setEnabled(false);
+
+    connect(loadTextureButton_, &QPushButton::clicked, this, [this] {
+        loadMetaHumanBaseColor();
+    });
+
     metaHumanStatusLabel_ = new QLabel(
         bdfr::metahuman::MetaHumanRigRuntime::backendAvailable()
             ? QStringLiteral("Backend: Epic OpenRigLogic 5.8")
@@ -370,6 +388,7 @@ QWidget* StudioMainWindow::buildProjectPanel() {
         bdfr::metahuman::MetaHumanRigRuntime::backendAvailable());
 
     metaLayout->addWidget(loadDnaButton_);
+    metaLayout->addWidget(loadTextureButton_);
     metaLayout->addWidget(metaHumanStatusLabel_);
     metaLayout->addWidget(metaHumanStatsLabel_);
     metaLayout->addWidget(metaHumanEvalLabel_);
@@ -898,10 +917,93 @@ void StudioMainWindow::loadMetaHumanDna() {
     metaHumanEvalLabel_->setText(
         QStringLiteral("Rig evaluation: waiting for a facial frame"));
 
+    const auto meshNames =
+        metaHumanRig_.meshNames();
+
+    std::uint16_t selectedMesh = 0;
+    for (std::uint16_t i = 0; i < meshNames.size(); ++i) {
+        const QString lower =
+            QString::fromStdString(meshNames[i]).toLower();
+
+        if (lower.contains(QStringLiteral("head")) ||
+            lower.contains(QStringLiteral("face"))) {
+            selectedMesh = i;
+            break;
+        }
+    }
+
+    bdfr::metahuman::MetaHumanMeshData mesh;
+    std::string meshError;
+
+    if (metaHumanRig_.extractMesh(
+            selectedMesh,
+            mesh,
+            &meshError)) {
+        metaHumanViewport_->setMesh(mesh);
+        loadTextureButton_->setEnabled(true);
+
+        if (previewTabs_) {
+            previewTabs_->setCurrentWidget(metaHumanViewport_);
+        }
+
+        metaHumanStatsLabel_->setText(
+            metaHumanStatsLabel_->text() +
+            QStringLiteral("\nMesh %1  •  Vertices %2  •  Triangles %3")
+                .arg(QString::fromStdString(mesh.name))
+                .arg(mesh.vertices.size())
+                .arg(mesh.indices.size() / 3));
+    } else {
+        metaHumanStatsLabel_->setText(
+            metaHumanStatsLabel_->text() +
+            QStringLiteral("\nMesh extraction failed: %1")
+                .arg(QString::fromStdString(meshError)));
+    }
+
     statusBar()->showMessage(
         QStringLiteral("Loaded MetaHuman DNA: %1")
             .arg(fileName),
         8000);
+}
+
+
+void StudioMainWindow::loadMetaHumanBaseColor() {
+    if (!metaHumanRig_.isLoaded() || !metaHumanViewport_) {
+        return;
+    }
+
+    const QString fileName =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Load MetaHuman BaseColor"),
+            QString(),
+            QStringLiteral(
+                "Texture Images (*.png *.jpg *.jpeg *.bmp *.webp);;"
+                "All files (*.*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QString error;
+
+    if (!metaHumanViewport_->loadBaseColorTexture(
+            fileName,
+            &error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Texture load failed"),
+            error);
+        return;
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("Loaded MetaHuman BaseColor: %1")
+            .arg(fileName),
+        8000);
+
+    if (previewTabs_) {
+        previewTabs_->setCurrentWidget(metaHumanViewport_);
+    }
 }
 
 void StudioMainWindow::updateMetaHumanEvaluation(
@@ -950,6 +1052,10 @@ void StudioMainWindow::updateMetaHumanEvaluation(
             .arg(output.jointValues.size())
             .arg(activeBlendShapes)
             .arg(activeAnimatedMaps));
+
+    if (metaHumanViewport_) {
+        metaHumanViewport_->setRigOutput(output);
+    }
 }
 
 void StudioMainWindow::toggleRecording() {
