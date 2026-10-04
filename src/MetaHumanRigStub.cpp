@@ -47,6 +47,20 @@ std::vector<std::string> MetaHumanRigRuntime::rawControlNames() const {
     return {};
 }
 
+std::vector<std::string> MetaHumanRigRuntime::meshNames() const {
+    return {};
+}
+
+bool MetaHumanRigRuntime::extractMesh(
+    std::uint16_t,
+    MetaHumanMeshData&,
+    std::string* error) const {
+    if (error) {
+        *error = "OpenRigLogic backend is unavailable.";
+    }
+    return false;
+}
+
 bool MetaHumanRigRuntime::evaluate(
     const CurveMap&,
     MetaHumanRigOutput&,
