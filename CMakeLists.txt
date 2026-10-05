@@ -16,6 +16,7 @@ add_library(bdfr_core
     src/Session.cpp
     src/Timecode.cpp
     src/Sequence.cpp
+    src/SequencePlayback.cpp
     src/CorrectiveEngine.cpp
     src/ExpressionStack.cpp
     src/JsonCodec.cpp
