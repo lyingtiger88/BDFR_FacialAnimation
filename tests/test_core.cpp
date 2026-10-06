@@ -47,6 +47,7 @@
 #include "bdfr/capture/FaceObservation.h"
 #include "bdfr/capture/CaptureQuality.h"
 #include "bdfr/core/Sequence.h"
+#include "bdfr/core/SequencePlayback.h"
 #include "bdfr/core/Timeline.h"
 
 #include <cmath>
@@ -1429,6 +1430,43 @@ int main() {
 
     expect(modelRegistry.all().size() == 2,
            "model registry enumerates registered versions");
+
+
+    bdfr::FacialSequence playbackSequence;
+    bdfr::FacialFrame playbackA;
+    playbackA.timestampSeconds = 0.0;
+    playbackA.curves["jawOpen"] = 0.0F;
+    bdfr::FacialFrame playbackB;
+    playbackB.timestampSeconds = 1.0;
+    playbackB.curves["jawOpen"] = 1.0F;
+    expect(playbackSequence.addFrame(playbackA) &&
+           playbackSequence.addFrame(playbackB),
+           "sequence playback fixture accepts ordered frames");
+
+    bdfr::SequencePlayback playback;
+    playback.load(&playbackSequence);
+    playback.play();
+    const auto playbackMid = playback.update(0.5);
+    expect(playback.state() == bdfr::PlaybackState::Playing &&
+           playback.positionSeconds() > 0.49 &&
+           playback.positionSeconds() < 0.51,
+           "sequence playback advances transport while playing");
+    expect(playbackMid.curves.at("jawOpen") > 0.49F &&
+           playbackMid.curves.at("jawOpen") < 0.51F,
+           "sequence playback samples interpolated facial values");
+
+    playback.pause();
+    const double pausedPosition = playback.positionSeconds();
+    playback.update(0.25);
+    expect(playback.positionSeconds() == pausedPosition,
+           "paused sequence playback holds transport position");
+
+    playback.setLooping(true);
+    playback.play();
+    playback.seek(0.9);
+    playback.update(0.3);
+    expect(playback.positionSeconds() < 0.3,
+           "sequence playback loops across duration");
 
     if (failures == 0) {
         std::cout << "All BDFR core tests passed.\n";
