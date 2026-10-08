@@ -487,6 +487,7 @@ void MetaHumanViewportWidget::initializeGL() {
         uniform bool uHasNormal;
         uniform bool uHasRoughness;
         uniform bool uHasSpecular;
+        uniform vec3 uCameraPosition;
 
         out vec4 fragColor;
 
@@ -595,7 +596,8 @@ void MetaHumanViewportWidget::initializeGL() {
 
             vec3 V =
                 normalize(
-                    -vWorldPosition);
+                    uCameraPosition -
+                    vWorldPosition);
 
             vec3 H =
                 normalize(L + V);
@@ -779,6 +781,13 @@ void MetaHumanViewportWidget::paintGL() {
     shader_.setUniformValue(
         "uModel",
         model);
+
+    shader_.setUniformValue(
+        "uCameraPosition",
+        QVector3D(
+            0.0F,
+            0.0F,
+            distance));
 
     shader_.setUniformValue(
         "uHasBaseColor",
