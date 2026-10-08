@@ -371,6 +371,25 @@ MetaHumanRigRuntime::meshNames() const {
     return result;
 }
 
+std::vector<std::uint16_t>
+MetaHumanRigRuntime::meshIndicesForLod(std::uint16_t lod) const {
+    std::vector<std::uint16_t> result;
+
+    if (!isLoaded() ||
+        lod >= impl_->reader->getLODCount()) {
+        return result;
+    }
+
+    const auto indices =
+        impl_->reader->getMeshIndicesForLOD(lod);
+
+    result.assign(
+        indices.begin(),
+        indices.end());
+
+    return result;
+}
+
 bool MetaHumanRigRuntime::extractMesh(
     std::uint16_t meshIndex,
     MetaHumanMeshData& output,
