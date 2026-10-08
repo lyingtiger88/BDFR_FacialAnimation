@@ -27,6 +27,7 @@ public:
     ~MetaHumanViewportWidget() override;
 
     void setMesh(const bdfr::metahuman::MetaHumanMeshData& mesh);
+    void setMeshes(const std::vector<bdfr::metahuman::MetaHumanMeshData>& meshes);
     void clearMesh();
 
     bool loadBaseColorTexture(const QString& path, QString* error = nullptr);
@@ -62,6 +63,7 @@ private:
         float tx;
         float ty;
         float tz;
+        float materialClass;
     };
 
     bool loadTextureInto(
