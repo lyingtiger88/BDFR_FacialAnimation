@@ -962,7 +962,7 @@ void StudioMainWindow::loadMetaHumanDna() {
         QStringLiteral("Full LOD0 Scene"),
         -1);
 
-    int preferredIndex = 0;
+    const int preferredIndex = 0;
 
     for (std::size_t i = 0;
          i < meshNames.size();
@@ -974,15 +974,6 @@ void StudioMainWindow::loadMetaHumanDna() {
         metaHumanMeshCombo_->addItem(
             display,
             static_cast<int>(i));
-
-        const QString lower =
-            display.toLower();
-
-        if (lower.contains(QStringLiteral("head")) ||
-            lower.contains(QStringLiteral("face"))) {
-            preferredIndex =
-                static_cast<int>(i);
-        }
     }
 
     metaHumanMeshCombo_->setEnabled(
