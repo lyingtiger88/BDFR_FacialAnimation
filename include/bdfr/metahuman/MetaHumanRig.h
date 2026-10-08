@@ -114,6 +114,7 @@ public:
 
     std::vector<std::string> rawControlNames() const;
     std::vector<std::string> meshNames() const;
+    std::vector<std::uint16_t> meshIndicesForLod(std::uint16_t lod) const;
     bool extractMesh(std::uint16_t meshIndex,
                      MetaHumanMeshData& output,
                      std::string* error = nullptr) const;
