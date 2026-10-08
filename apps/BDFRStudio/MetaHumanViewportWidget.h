@@ -8,6 +8,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
 #include <QPoint>
+#include <QMatrix4x4>
 #include <QVector3D>
 
 #include <memory>
@@ -29,7 +30,10 @@ public:
     void clearMesh();
 
     bool loadBaseColorTexture(const QString& path, QString* error = nullptr);
-    void clearTexture();
+    bool loadNormalTexture(const QString& path, QString* error = nullptr);
+    bool loadRoughnessTexture(const QString& path, QString* error = nullptr);
+    bool loadSpecularTexture(const QString& path, QString* error = nullptr);
+    void clearTextures();
 
     void setRigOutput(const bdfr::metahuman::MetaHumanRigOutput& output);
 
@@ -57,7 +61,13 @@ private:
         float v;
     };
 
+    bool loadTextureInto(
+        const QString& path,
+        std::unique_ptr<QOpenGLTexture>& target,
+        QString* error);
     void rebuildGpuVertices();
+    void buildNeutralJointGlobals();
+    void applyJointSkinning(const bdfr::metahuman::MetaHumanRigOutput& output);
     void uploadMeshIfReady();
     void updateCameraBounds();
 
@@ -68,7 +78,12 @@ private:
     QOpenGLBuffer indexBuffer_{QOpenGLBuffer::IndexBuffer};
     QOpenGLVertexArrayObject vao_;
     QOpenGLShaderProgram shader_;
-    std::unique_ptr<QOpenGLTexture> texture_;
+    std::unique_ptr<QOpenGLTexture> baseColorTexture_;
+    std::unique_ptr<QOpenGLTexture> normalTexture_;
+    std::unique_ptr<QOpenGLTexture> roughnessTexture_;
+    std::unique_ptr<QOpenGLTexture> specularTexture_;
+
+    std::vector<QMatrix4x4> neutralJointGlobals_;
 
     bool glReady_ = false;
     float yawDegrees_ = 0.0F;
