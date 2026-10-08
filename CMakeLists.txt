@@ -161,6 +161,10 @@ add_executable(bdfr_metahuman_probe tools/bdfr_metahuman_probe.cpp)
 target_link_libraries(bdfr_metahuman_probe PRIVATE bdfr_metahuman)
 add_test(NAME bdfr_metahuman_probe_backend COMMAND bdfr_metahuman_probe)
 
+add_executable(bdfr_metahuman_api_tests tests/test_metahuman_api.cpp)
+target_link_libraries(bdfr_metahuman_api_tests PRIVATE bdfr_metahuman)
+add_test(NAME bdfr_metahuman_api_tests COMMAND bdfr_metahuman_api_tests)
+
 
 if(BDFR_BUILD_STUDIO)
     add_subdirectory(apps/BDFRStudio)
