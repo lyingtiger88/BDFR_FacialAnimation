@@ -4,10 +4,12 @@
 #include <QMouseEvent>
 #include <QOpenGLTexture>
 #include <QQuaternion>
+#include <QVector2D>
 #include <QVector3D>
 #include <QWheelEvent>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <unordered_map>
@@ -116,6 +118,16 @@ void MetaHumanViewportWidget::setMesh(
     const bdfr::metahuman::MetaHumanMeshData& mesh) {
 
     mesh_ = mesh;
+
+    const float meshMaterialClass =
+        materialClassForName(mesh_.name);
+
+    if (meshMaterialClass > 0.0F) {
+        for (auto& vertex : mesh_.vertices) {
+            vertex.materialClass =
+                meshMaterialClass;
+        }
+    }
 
     rebuildGpuVertices();
     recalculateTangents();
@@ -480,7 +492,8 @@ void MetaHumanViewportWidget::initializeGL() {
         vec3 getNormal() {
             vec3 N = normalize(vNormal);
 
-            if (!uHasNormal) {
+            if (!uHasNormal ||
+                vMaterialClass > 0.5) {
                 return N;
             }
 
@@ -613,14 +626,16 @@ void MetaHumanViewportWidget::initializeGL() {
                     1.0);
 
             vec3 warmScatter =
-                vec3(
-                    1.0,
-                    0.24,
-                    0.15) *
-                pow(
-                    1.0 - NoL,
-                    2.0) *
-                0.07;
+                vMaterialClass < 0.5
+                    ? vec3(
+                        1.0,
+                        0.24,
+                        0.15) *
+                      pow(
+                        1.0 - NoL,
+                        2.0) *
+                      0.07
+                    : vec3(0.0);
 
             vec3 ambient =
                 baseColor * 0.18;
@@ -822,22 +837,6 @@ void MetaHumanViewportWidget::paintGL() {
         nullptr);
 
     vao_.release();
-
-    if (specularTexture_) {
-        specularTexture_->release();
-    }
-
-    if (roughnessTexture_) {
-        roughnessTexture_->release();
-    }
-
-    if (normalTexture_) {
-        normalTexture_->release();
-    }
-
-    if (baseColorTexture_) {
-        baseColorTexture_->release();
-    }
 
     shader_.release();
 }
