@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <unordered_map>
 
 namespace {
 
@@ -28,6 +29,31 @@ QMatrix4x4 makeLocalMatrix(
     result.rotate(rotation);
     result.scale(joint.sx, joint.sy, joint.sz);
     return result;
+}
+
+float materialClassForName(const std::string& name) {
+    std::string lower = name;
+    std::transform(
+        lower.begin(),
+        lower.end(),
+        lower.begin(),
+        [](unsigned char ch) {
+            return static_cast<char>(std::tolower(ch));
+        });
+
+    if (lower.find("eye") != std::string::npos ||
+        lower.find("iris") != std::string::npos ||
+        lower.find("cornea") != std::string::npos) {
+        return 1.0F;
+    }
+
+    if (lower.find("teeth") != std::string::npos ||
+        lower.find("tooth") != std::string::npos ||
+        lower.find("gum") != std::string::npos) {
+        return 2.0F;
+    }
+
+    return 0.0F;
 }
 
 QQuaternion normalizedDeltaQuaternion(
@@ -103,6 +129,110 @@ void MetaHumanViewportWidget::setMesh(
     }
 
     update();
+}
+
+void MetaHumanViewportWidget::setMeshes(
+    const std::vector<bdfr::metahuman::MetaHumanMeshData>& meshes) {
+
+    bdfr::metahuman::MetaHumanMeshData combined;
+    combined.name = "MetaHuman LOD0 Scene";
+
+    std::unordered_map<std::string, std::size_t>
+        morphTargetLookup;
+
+    bool copiedSkeleton = false;
+
+    for (const auto& source : meshes) {
+        const std::uint32_t vertexOffset =
+            static_cast<std::uint32_t>(
+                combined.vertices.size());
+
+        const float materialClass =
+            materialClassForName(source.name);
+
+        for (auto vertex : source.vertices) {
+            vertex.materialClass =
+                materialClass;
+            combined.vertices.push_back(
+                vertex);
+        }
+
+        for (const auto index :
+             source.indices) {
+            combined.indices.push_back(
+                vertexOffset + index);
+        }
+
+        combined.skinInfluences.insert(
+            combined.skinInfluences.end(),
+            source.skinInfluences.begin(),
+            source.skinInfluences.end());
+
+        if (!copiedSkeleton &&
+            !source.joints.empty()) {
+            combined.joints =
+                source.joints;
+
+            combined.jointAttributeCountPerJoint =
+                source.jointAttributeCountPerJoint;
+
+            copiedSkeleton = true;
+        }
+
+        for (const auto& sourceTarget :
+             source.morphTargets) {
+
+            std::size_t targetIndex = 0;
+
+            const auto existing =
+                morphTargetLookup.find(
+                    sourceTarget.channelName);
+
+            if (existing ==
+                morphTargetLookup.end()) {
+
+                targetIndex =
+                    combined.morphTargets.size();
+
+                bdfr::metahuman::MetaHumanMorphTarget
+                    target;
+
+                target.channelName =
+                    sourceTarget.channelName;
+
+                combined.morphTargets.push_back(
+                    std::move(target));
+
+                morphTargetLookup.emplace(
+                    sourceTarget.channelName,
+                    targetIndex);
+
+            } else {
+                targetIndex =
+                    existing->second;
+            }
+
+            auto& destinationTarget =
+                combined.morphTargets[
+                    targetIndex];
+
+            destinationTarget.deltas.reserve(
+                destinationTarget.deltas.size() +
+                sourceTarget.deltas.size());
+
+            for (auto delta :
+                 sourceTarget.deltas) {
+
+                delta.vertexIndex +=
+                    vertexOffset;
+
+                destinationTarget.deltas.push_back(
+                    delta);
+            }
+        }
+    }
+
+    setMesh(combined);
 }
 
 void MetaHumanViewportWidget::clearMesh() {
@@ -289,6 +419,7 @@ void MetaHumanViewportWidget::initializeGL() {
         layout(location = 1) in vec3 aNormal;
         layout(location = 2) in vec2 aUv;
         layout(location = 3) in vec3 aTangent;
+        layout(location = 4) in float aMaterialClass;
 
         uniform mat4 uMvp;
         uniform mat4 uModel;
@@ -297,6 +428,7 @@ void MetaHumanViewportWidget::initializeGL() {
         out vec3 vNormal;
         out vec3 vTangent;
         out vec2 vUv;
+        flat out float vMaterialClass;
 
         void main() {
             vec4 worldPosition =
@@ -320,6 +452,7 @@ void MetaHumanViewportWidget::initializeGL() {
                     normalMatrix * aTangent);
 
             vUv = aUv;
+            vMaterialClass = aMaterialClass;
         }
     )";
 
@@ -330,6 +463,7 @@ void MetaHumanViewportWidget::initializeGL() {
         in vec3 vNormal;
         in vec3 vTangent;
         in vec2 vUv;
+        flat in float vMaterialClass;
 
         uniform sampler2D uBaseColor;
         uniform sampler2D uNormalMap;
@@ -369,37 +503,72 @@ void MetaHumanViewportWidget::initializeGL() {
         }
 
         void main() {
-            vec3 baseColor =
-                uHasBaseColor
-                    ? pow(
-                        texture(
-                            uBaseColor,
-                            vUv).rgb,
-                        vec3(2.2))
-                    : vec3(
-                        0.55,
-                        0.43,
-                        0.38);
+            bool isEye =
+                vMaterialClass > 0.5 &&
+                vMaterialClass < 1.5;
+
+            bool isTeeth =
+                vMaterialClass >= 1.5;
+
+            vec3 baseColor;
+
+            if (isEye) {
+                baseColor =
+                    vec3(
+                        0.72,
+                        0.76,
+                        0.79);
+            } else if (isTeeth) {
+                baseColor =
+                    vec3(
+                        0.88,
+                        0.84,
+                        0.72);
+            } else {
+                baseColor =
+                    uHasBaseColor
+                        ? pow(
+                            texture(
+                                uBaseColor,
+                                vUv).rgb,
+                            vec3(2.2))
+                        : vec3(
+                            0.55,
+                            0.43,
+                            0.38);
+            }
 
             float roughness =
-                uHasRoughness
-                    ? clamp(
-                        texture(
-                            uRoughnessMap,
-                            vUv).r,
-                        0.04,
-                        1.0)
-                    : 0.58;
+                isEye
+                    ? 0.08
+                    : (
+                        isTeeth
+                            ? 0.28
+                            : (
+                                uHasRoughness
+                                    ? clamp(
+                                        texture(
+                                            uRoughnessMap,
+                                            vUv).r,
+                                        0.04,
+                                        1.0)
+                                    : 0.58));
 
             float specular =
-                uHasSpecular
-                    ? clamp(
-                        texture(
-                            uSpecularMap,
-                            vUv).r,
-                        0.0,
-                        1.0)
-                    : 0.32;
+                isEye
+                    ? 0.92
+                    : (
+                        isTeeth
+                            ? 0.55
+                            : (
+                                uHasSpecular
+                                    ? clamp(
+                                        texture(
+                                            uSpecularMap,
+                                            vUv).r,
+                                        0.0,
+                                        1.0)
+                                    : 0.32));
 
             vec3 N = getNormal();
 
@@ -761,7 +930,8 @@ void MetaHumanViewportWidget::rebuildGpuVertices() {
                 vertex.v,
                 1.0F,
                 0.0F,
-                0.0F
+                0.0F,
+                vertex.materialClass
             });
     }
 }
@@ -1201,6 +1371,15 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
         GL_FLOAT,
         offsetof(GpuVertex, tx),
         3,
+        sizeof(GpuVertex));
+
+    shader_.enableAttributeArray(4);
+
+    shader_.setAttributeBuffer(
+        4,
+        GL_FLOAT,
+        offsetof(GpuVertex, materialClass),
+        1,
         sizeof(GpuVertex));
 
     shader_.release();
