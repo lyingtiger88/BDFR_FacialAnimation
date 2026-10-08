@@ -360,13 +360,44 @@ QWidget* StudioMainWindow::buildProjectPanel() {
         loadMetaHumanDna();
     });
 
-    loadTextureButton_ =
-        new QPushButton(QStringLiteral("Load BaseColor Texture…"));
+    metaHumanMeshCombo_ = new QComboBox();
+    metaHumanMeshCombo_->setEnabled(false);
 
-    loadTextureButton_->setEnabled(false);
+    connect(metaHumanMeshCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        loadSelectedMetaHumanMesh();
+    });
+
+    loadTextureButton_ =
+        new QPushButton(QStringLiteral("Load BaseColor…"));
+    loadNormalButton_ =
+        new QPushButton(QStringLiteral("Load Normal…"));
+    loadRoughnessButton_ =
+        new QPushButton(QStringLiteral("Load Roughness…"));
+    loadSpecularButton_ =
+        new QPushButton(QStringLiteral("Load Specular…"));
+
+    for (QPushButton* button : {
+             loadTextureButton_,
+             loadNormalButton_,
+             loadRoughnessButton_,
+             loadSpecularButton_}) {
+        button->setEnabled(false);
+    }
 
     connect(loadTextureButton_, &QPushButton::clicked, this, [this] {
         loadMetaHumanBaseColor();
+    });
+
+    connect(loadNormalButton_, &QPushButton::clicked, this, [this] {
+        loadMetaHumanNormal();
+    });
+
+    connect(loadRoughnessButton_, &QPushButton::clicked, this, [this] {
+        loadMetaHumanRoughness();
+    });
+
+    connect(loadSpecularButton_, &QPushButton::clicked, this, [this] {
+        loadMetaHumanSpecular();
     });
 
     metaHumanStatusLabel_ = new QLabel(
@@ -388,7 +419,11 @@ QWidget* StudioMainWindow::buildProjectPanel() {
         bdfr::metahuman::MetaHumanRigRuntime::backendAvailable());
 
     metaLayout->addWidget(loadDnaButton_);
+    metaLayout->addWidget(metaHumanMeshCombo_);
     metaLayout->addWidget(loadTextureButton_);
+    metaLayout->addWidget(loadNormalButton_);
+    metaLayout->addWidget(loadRoughnessButton_);
+    metaLayout->addWidget(loadSpecularButton_);
     metaLayout->addWidget(metaHumanStatusLabel_);
     metaLayout->addWidget(metaHumanStatsLabel_);
     metaLayout->addWidget(metaHumanEvalLabel_);
@@ -920,44 +955,41 @@ void StudioMainWindow::loadMetaHumanDna() {
     const auto meshNames =
         metaHumanRig_.meshNames();
 
-    std::uint16_t selectedMesh = 0;
-    for (std::uint16_t i = 0; i < meshNames.size(); ++i) {
+    metaHumanMeshCombo_->blockSignals(true);
+    metaHumanMeshCombo_->clear();
+
+    int preferredIndex = 0;
+
+    for (std::size_t i = 0;
+         i < meshNames.size();
+         ++i) {
+
+        const QString display =
+            QString::fromStdString(meshNames[i]);
+
+        metaHumanMeshCombo_->addItem(
+            display,
+            static_cast<int>(i));
+
         const QString lower =
-            QString::fromStdString(meshNames[i]).toLower();
+            display.toLower();
 
         if (lower.contains(QStringLiteral("head")) ||
             lower.contains(QStringLiteral("face"))) {
-            selectedMesh = i;
-            break;
+            preferredIndex =
+                static_cast<int>(i);
         }
     }
 
-    bdfr::metahuman::MetaHumanMeshData mesh;
-    std::string meshError;
+    metaHumanMeshCombo_->setEnabled(
+        !meshNames.empty());
 
-    if (metaHumanRig_.extractMesh(
-            selectedMesh,
-            mesh,
-            &meshError)) {
-        metaHumanViewport_->setMesh(mesh);
-        loadTextureButton_->setEnabled(true);
+    metaHumanMeshCombo_->setCurrentIndex(
+        preferredIndex);
 
-        if (previewTabs_) {
-            previewTabs_->setCurrentWidget(metaHumanViewport_);
-        }
+    metaHumanMeshCombo_->blockSignals(false);
 
-        metaHumanStatsLabel_->setText(
-            metaHumanStatsLabel_->text() +
-            QStringLiteral("\nMesh %1  •  Vertices %2  •  Triangles %3")
-                .arg(QString::fromStdString(mesh.name))
-                .arg(mesh.vertices.size())
-                .arg(mesh.indices.size() / 3));
-    } else {
-        metaHumanStatsLabel_->setText(
-            metaHumanStatsLabel_->text() +
-            QStringLiteral("\nMesh extraction failed: %1")
-                .arg(QString::fromStdString(meshError)));
-    }
+    loadSelectedMetaHumanMesh();
 
     statusBar()->showMessage(
         QStringLiteral("Loaded MetaHuman DNA: %1")
@@ -965,6 +997,63 @@ void StudioMainWindow::loadMetaHumanDna() {
         8000);
 }
 
+
+void StudioMainWindow::loadSelectedMetaHumanMesh() {
+    if (!metaHumanRig_.isLoaded() ||
+        !metaHumanViewport_ ||
+        !metaHumanMeshCombo_ ||
+        metaHumanMeshCombo_->currentIndex() < 0) {
+        return;
+    }
+
+    const std::uint16_t meshIndex =
+        static_cast<std::uint16_t>(
+            metaHumanMeshCombo_
+                ->currentData()
+                .toInt());
+
+    bdfr::metahuman::MetaHumanMeshData mesh;
+    std::string error;
+
+    if (!metaHumanRig_.extractMesh(
+            meshIndex,
+            mesh,
+            &error)) {
+
+        metaHumanStatsLabel_->setText(
+            QStringLiteral("Mesh extraction failed: %1")
+                .arg(QString::fromStdString(error)));
+
+        return;
+    }
+
+    metaHumanViewport_->setMesh(mesh);
+
+    for (QPushButton* button : {
+             loadTextureButton_,
+             loadNormalButton_,
+             loadRoughnessButton_,
+             loadSpecularButton_}) {
+        button->setEnabled(true);
+    }
+
+    metaHumanStatsLabel_->setText(
+        QStringLiteral(
+            "Mesh %1\n"
+            "Vertices %2  •  Triangles %3  •  Morphs %4\n"
+            "Joints %5  •  Skin vertices %6")
+            .arg(QString::fromStdString(mesh.name))
+            .arg(mesh.vertices.size())
+            .arg(mesh.indices.size() / 3)
+            .arg(mesh.morphTargets.size())
+            .arg(mesh.joints.size())
+            .arg(mesh.skinInfluences.size()));
+
+    if (previewTabs_) {
+        previewTabs_->setCurrentWidget(
+            metaHumanViewport_);
+    }
+}
 
 void StudioMainWindow::loadMetaHumanBaseColor() {
     if (!metaHumanRig_.isLoaded() || !metaHumanViewport_) {
@@ -1004,6 +1093,102 @@ void StudioMainWindow::loadMetaHumanBaseColor() {
     if (previewTabs_) {
         previewTabs_->setCurrentWidget(metaHumanViewport_);
     }
+}
+
+void StudioMainWindow::loadMetaHumanNormal() {
+    const QString fileName =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Load MetaHuman Normal Map"),
+            QString(),
+            QStringLiteral(
+                "Texture Images (*.png *.jpg *.jpeg *.bmp *.webp);;"
+                "All files (*.*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QString error;
+
+    if (!metaHumanViewport_->loadNormalTexture(
+            fileName,
+            &error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Normal map load failed"),
+            error);
+        return;
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("Loaded Normal map: %1")
+            .arg(fileName),
+        8000);
+}
+
+void StudioMainWindow::loadMetaHumanRoughness() {
+    const QString fileName =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Load MetaHuman Roughness Map"),
+            QString(),
+            QStringLiteral(
+                "Texture Images (*.png *.jpg *.jpeg *.bmp *.webp);;"
+                "All files (*.*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QString error;
+
+    if (!metaHumanViewport_->loadRoughnessTexture(
+            fileName,
+            &error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Roughness map load failed"),
+            error);
+        return;
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("Loaded Roughness map: %1")
+            .arg(fileName),
+        8000);
+}
+
+void StudioMainWindow::loadMetaHumanSpecular() {
+    const QString fileName =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Load MetaHuman Specular Map"),
+            QString(),
+            QStringLiteral(
+                "Texture Images (*.png *.jpg *.jpeg *.bmp *.webp);;"
+                "All files (*.*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QString error;
+
+    if (!metaHumanViewport_->loadSpecularTexture(
+            fileName,
+            &error)) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Specular map load failed"),
+            error);
+        return;
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("Loaded Specular map: %1")
+            .arg(fileName),
+        8000);
 }
 
 void StudioMainWindow::updateMetaHumanEvaluation(
