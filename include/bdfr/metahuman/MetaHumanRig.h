@@ -36,6 +36,29 @@ struct MetaHumanMeshVertex {
     std::uint32_t sourcePositionIndex = 0;
 };
 
+struct MetaHumanSkinInfluence {
+    std::uint16_t jointIndex = 0;
+    float weight = 0.0F;
+};
+
+struct MetaHumanJoint {
+    std::string name;
+    std::uint16_t parentIndex = 0;
+
+    float tx = 0.0F;
+    float ty = 0.0F;
+    float tz = 0.0F;
+
+    float qx = 0.0F;
+    float qy = 0.0F;
+    float qz = 0.0F;
+    float qw = 1.0F;
+
+    float sx = 1.0F;
+    float sy = 1.0F;
+    float sz = 1.0F;
+};
+
 struct MetaHumanMorphDelta {
     std::uint32_t vertexIndex = 0;
     float dx = 0.0F;
@@ -53,6 +76,11 @@ struct MetaHumanMeshData {
     std::vector<MetaHumanMeshVertex> vertices;
     std::vector<std::uint32_t> indices;
     std::vector<MetaHumanMorphTarget> morphTargets;
+
+    std::vector<std::vector<MetaHumanSkinInfluence>> skinInfluences;
+    std::vector<MetaHumanJoint> joints;
+
+    std::uint16_t jointAttributeCountPerJoint = 10;
 };
 
 struct MetaHumanRigOutput {
