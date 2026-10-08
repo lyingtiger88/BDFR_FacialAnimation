@@ -63,6 +63,10 @@ private:
 
     void loadMetaHumanDna();
     void loadMetaHumanBaseColor();
+    void loadMetaHumanNormal();
+    void loadMetaHumanRoughness();
+    void loadMetaHumanSpecular();
+    void loadSelectedMetaHumanMesh();
     void updateMetaHumanEvaluation(const bdfr::FacialFrame& frame);
 
     void toggleRecording();
@@ -93,6 +97,10 @@ private:
     QPushButton* recordButton_ = nullptr;
     QPushButton* loadDnaButton_ = nullptr;
     QPushButton* loadTextureButton_ = nullptr;
+    QPushButton* loadNormalButton_ = nullptr;
+    QPushButton* loadRoughnessButton_ = nullptr;
+    QPushButton* loadSpecularButton_ = nullptr;
+    QComboBox* metaHumanMeshCombo_ = nullptr;
 
     QLabel* connectionStateLabel_ = nullptr;
     QLabel* sourceLabel_ = nullptr;
