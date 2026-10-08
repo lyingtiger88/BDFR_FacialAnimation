@@ -46,6 +46,11 @@ Expected behavior:
 
 ## Current rendering scope
 
-The viewport renders one selected DNA mesh at a time. This makes it possible to validate head, eyes and teeth independently with the exact DNA topology and weights.
+The viewport supports both:
 
-The next renderer expansion is a composed multi-mesh scene with per-mesh material assignments so head, eyes, teeth and other meshes can be shown simultaneously.
+- **Full LOD0 Scene** — composes the DNA meshes that belong to LOD0 into one live scene.
+- **Individual mesh inspection** — select head, eye, teeth or any other DNA mesh from the dropdown.
+
+The composed scene keeps exact DNA topology, UVs, morph targets, joint weights and RigLogic deformation. Preview material classes distinguish skin, eyes and teeth. Skin uses the loaded BaseColor/Normal/Roughness/Specular maps; eyes and teeth receive dedicated preview shading defaults.
+
+This is still a Studio preview renderer, not a byte-for-byte reproduction of Unreal Engine's MetaHuman material graph. Exact UE material graph parity, strand hair rendering and production eye shaders remain separate rendering milestones.
