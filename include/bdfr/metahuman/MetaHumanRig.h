@@ -33,6 +33,7 @@ struct MetaHumanMeshVertex {
     float nz = 1.0F;
     float u = 0.0F;
     float v = 0.0F;
+    float materialClass = 0.0F;
     std::uint32_t sourcePositionIndex = 0;
 };
 
