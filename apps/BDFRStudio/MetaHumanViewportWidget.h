@@ -90,6 +90,7 @@ private:
     std::unique_ptr<QOpenGLTexture> specularTexture_;
 
     std::vector<QMatrix4x4> neutralJointGlobals_;
+    std::vector<QMatrix4x4> inverseNeutralJointGlobals_;
 
     bool glReady_ = false;
     float yawDegrees_ = 0.0F;
