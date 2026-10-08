@@ -59,6 +59,9 @@ private:
         float nz;
         float u;
         float v;
+        float tx;
+        float ty;
+        float tz;
     };
 
     bool loadTextureInto(
@@ -66,6 +69,7 @@ private:
         std::unique_ptr<QOpenGLTexture>& target,
         QString* error);
     void rebuildGpuVertices();
+    void recalculateTangents();
     void buildNeutralJointGlobals();
     void applyJointSkinning(const bdfr::metahuman::MetaHumanRigOutput& output);
     void uploadMeshIfReady();
