@@ -239,6 +239,7 @@ bool MetaHumanRigRuntime::loadDna(
     rigConfig.loadMachineLearnedBehavior = true;
     rigConfig.loadRBFBehavior = true;
     rigConfig.loadTwistSwingBehavior = true;
+    rigConfig.rotationType = rl4::RotationType::Quaternions;
 
     impl_->rigLogic = rl4::RigLogic::create(
         impl_->reader,
@@ -398,6 +399,51 @@ bool MetaHumanRigRuntime::extractMesh(
         impl_->reader->getVertexLayoutCount(meshIndex);
 
     output.vertices.reserve(layoutCount);
+    output.skinInfluences.reserve(layoutCount);
+
+    const auto neutralJointValues =
+        impl_->rigLogic->getNeutralJointValues();
+
+    const std::uint16_t jointCount =
+        impl_->reader->getJointCount();
+
+    output.joints.reserve(jointCount);
+
+    constexpr std::size_t jointStride = 10;
+
+    for (std::uint16_t jointIndex = 0;
+         jointIndex < jointCount;
+         ++jointIndex) {
+
+        MetaHumanJoint joint;
+        joint.name =
+            impl_->reader->getJointName(jointIndex).c_str();
+
+        joint.parentIndex =
+            impl_->reader->getJointParentIndex(jointIndex);
+
+        const std::size_t base =
+            static_cast<std::size_t>(jointIndex) *
+            jointStride;
+
+        if (base + 9 < neutralJointValues.size()) {
+            joint.tx = neutralJointValues[base + 0];
+            joint.ty = neutralJointValues[base + 1];
+            joint.tz = neutralJointValues[base + 2];
+
+            joint.qx = neutralJointValues[base + 3];
+            joint.qy = neutralJointValues[base + 4];
+            joint.qz = neutralJointValues[base + 5];
+            joint.qw = neutralJointValues[base + 6];
+
+            joint.sx = neutralJointValues[base + 7];
+            joint.sy = neutralJointValues[base + 8];
+            joint.sz = neutralJointValues[base + 9];
+        }
+
+        output.joints.push_back(
+            std::move(joint));
+    }
 
     std::unordered_map<
         std::uint32_t,
@@ -453,6 +499,49 @@ bool MetaHumanRigRuntime::extractMesh(
                 output.vertices.size());
 
         output.vertices.push_back(vertex);
+
+        std::vector<MetaHumanSkinInfluence> influences;
+
+        const auto weightValues =
+            impl_->reader->getSkinWeightsValues(
+                meshIndex,
+                layout.position);
+
+        const auto jointIndices =
+            impl_->reader->getSkinWeightsJointIndices(
+                meshIndex,
+                layout.position);
+
+        const std::size_t influenceCount =
+            std::min<std::size_t>(
+                weightValues.size(),
+                jointIndices.size());
+
+        influences.reserve(influenceCount);
+
+        for (std::size_t influenceIndex = 0;
+             influenceIndex < influenceCount;
+             ++influenceIndex) {
+
+            const float weight =
+                weightValues[influenceIndex];
+
+            if (weight <= 0.0F) {
+                continue;
+            }
+
+            MetaHumanSkinInfluence influence;
+            influence.jointIndex =
+                jointIndices[influenceIndex];
+            influence.weight =
+                weight;
+
+            influences.push_back(
+                influence);
+        }
+
+        output.skinInfluences.push_back(
+            std::move(influences));
 
         sourcePositionToRenderVertices[
             layout.position].push_back(
