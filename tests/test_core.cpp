@@ -32,6 +32,7 @@
 #include "bdfr/runtime/FramePacketCodec.h"
 #include "bdfr/runtime/SessionStream.h"
 #include "bdfr/runtime/UdpTransport.h"
+#include "bdfr/metahuman/MetaHumanRig.h"
 #include "bdfr/runtime/LiveSessionReceiver.h"
 #include "bdfr/core/Session.h"
 #include "bdfr/core/Timecode.h"
@@ -1469,7 +1470,30 @@ int main() {
            "sequence playback loops across duration");
 
     if (failures == 0) {
-        std::cout << "All BDFR core tests passed.\n";
+        {
+        bdfr::metahuman::MetaHumanRigRuntime metaHuman;
+
+        expect(
+            !bdfr::metahuman::MetaHumanRigRuntime::backendAvailable(),
+            "default core build keeps OpenRigLogic optional");
+
+        expect(
+            !metaHuman.isLoaded(),
+            "MetaHuman runtime starts unloaded");
+
+        bdfr::metahuman::MetaHumanMeshData mesh;
+        std::string metaError;
+
+        expect(
+            !metaHuman.extractMesh(0, mesh, &metaError),
+            "MetaHuman stub rejects mesh extraction without backend");
+
+        expect(
+            !metaError.empty(),
+            "MetaHuman stub reports mesh extraction error");
+    }
+
+    std::cout << "All BDFR core tests passed.\n";
         return EXIT_SUCCESS;
     }
 
