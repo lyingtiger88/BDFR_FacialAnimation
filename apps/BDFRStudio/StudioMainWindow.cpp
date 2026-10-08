@@ -958,6 +958,10 @@ void StudioMainWindow::loadMetaHumanDna() {
     metaHumanMeshCombo_->blockSignals(true);
     metaHumanMeshCombo_->clear();
 
+    metaHumanMeshCombo_->addItem(
+        QStringLiteral("Full LOD0 Scene"),
+        -1);
+
     int preferredIndex = 0;
 
     for (std::size_t i = 0;
@@ -1006,28 +1010,106 @@ void StudioMainWindow::loadSelectedMetaHumanMesh() {
         return;
     }
 
-    const std::uint16_t meshIndex =
-        static_cast<std::uint16_t>(
-            metaHumanMeshCombo_
-                ->currentData()
-                .toInt());
+    const int selectedData =
+        metaHumanMeshCombo_
+            ->currentData()
+            .toInt();
 
-    bdfr::metahuman::MetaHumanMeshData mesh;
     std::string error;
 
-    if (!metaHumanRig_.extractMesh(
-            meshIndex,
-            mesh,
-            &error)) {
+    if (selectedData < 0) {
+        const auto indices =
+            metaHumanRig_.meshIndicesForLod(0);
+
+        std::vector<
+            bdfr::metahuman::MetaHumanMeshData>
+            sceneMeshes;
+
+        sceneMeshes.reserve(indices.size());
+
+        std::size_t vertexCount = 0;
+        std::size_t triangleCount = 0;
+        std::size_t morphCount = 0;
+
+        for (const auto meshIndex : indices) {
+            bdfr::metahuman::MetaHumanMeshData mesh;
+
+            if (!metaHumanRig_.extractMesh(
+                    meshIndex,
+                    mesh,
+                    &error)) {
+                continue;
+            }
+
+            vertexCount +=
+                mesh.vertices.size();
+
+            triangleCount +=
+                mesh.indices.size() / 3;
+
+            morphCount +=
+                mesh.morphTargets.size();
+
+            sceneMeshes.push_back(
+                std::move(mesh));
+        }
+
+        if (sceneMeshes.empty()) {
+            metaHumanStatsLabel_->setText(
+                QStringLiteral(
+                    "LOD0 scene extraction failed: %1")
+                    .arg(QString::fromStdString(error)));
+
+            return;
+        }
+
+        metaHumanViewport_->setMeshes(
+            sceneMeshes);
 
         metaHumanStatsLabel_->setText(
-            QStringLiteral("Mesh extraction failed: %1")
-                .arg(QString::fromStdString(error)));
+            QStringLiteral(
+                "Full LOD0 Scene\n"
+                "Meshes %1  •  Vertices %2  •  Triangles %3\n"
+                "Morph targets %4  •  Joint skinning enabled")
+                .arg(sceneMeshes.size())
+                .arg(vertexCount)
+                .arg(triangleCount)
+                .arg(morphCount));
 
-        return;
+    } else {
+        const std::uint16_t meshIndex =
+            static_cast<std::uint16_t>(
+                selectedData);
+
+        bdfr::metahuman::MetaHumanMeshData mesh;
+
+        if (!metaHumanRig_.extractMesh(
+                meshIndex,
+                mesh,
+                &error)) {
+
+            metaHumanStatsLabel_->setText(
+                QStringLiteral(
+                    "Mesh extraction failed: %1")
+                    .arg(QString::fromStdString(error)));
+
+            return;
+        }
+
+        metaHumanViewport_->setMesh(mesh);
+
+        metaHumanStatsLabel_->setText(
+            QStringLiteral(
+                "Mesh %1\n"
+                "Vertices %2  •  Triangles %3  •  Morphs %4\n"
+                "Joints %5  •  Skin vertices %6")
+                .arg(QString::fromStdString(mesh.name))
+                .arg(mesh.vertices.size())
+                .arg(mesh.indices.size() / 3)
+                .arg(mesh.morphTargets.size())
+                .arg(mesh.joints.size())
+                .arg(mesh.skinInfluences.size()));
     }
-
-    metaHumanViewport_->setMesh(mesh);
 
     for (QPushButton* button : {
              loadTextureButton_,
@@ -1036,18 +1118,6 @@ void StudioMainWindow::loadSelectedMetaHumanMesh() {
              loadSpecularButton_}) {
         button->setEnabled(true);
     }
-
-    metaHumanStatsLabel_->setText(
-        QStringLiteral(
-            "Mesh %1\n"
-            "Vertices %2  •  Triangles %3  •  Morphs %4\n"
-            "Joints %5  •  Skin vertices %6")
-            .arg(QString::fromStdString(mesh.name))
-            .arg(mesh.vertices.size())
-            .arg(mesh.indices.size() / 3)
-            .arg(mesh.morphTargets.size())
-            .arg(mesh.joints.size())
-            .arg(mesh.skinInfluences.size()));
 
     if (previewTabs_) {
         previewTabs_->setCurrentWidget(
