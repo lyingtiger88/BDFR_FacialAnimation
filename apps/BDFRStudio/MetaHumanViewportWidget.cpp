@@ -251,6 +251,7 @@ void MetaHumanViewportWidget::clearMesh() {
     mesh_ = {};
     gpuVertices_.clear();
     neutralJointGlobals_.clear();
+    inverseNeutralJointGlobals_.clear();
     update();
 }
 
@@ -1062,8 +1063,12 @@ void MetaHumanViewportWidget::recalculateTangents() {
 
 void MetaHumanViewportWidget::buildNeutralJointGlobals() {
     neutralJointGlobals_.clear();
+    inverseNeutralJointGlobals_.clear();
 
     neutralJointGlobals_.resize(
+        mesh_.joints.size());
+
+    inverseNeutralJointGlobals_.resize(
         mesh_.joints.size());
 
     for (std::size_t i = 0;
@@ -1091,6 +1096,17 @@ void MetaHumanViewportWidget::buildNeutralJointGlobals() {
             neutralJointGlobals_[i] =
                 local;
         }
+
+        bool invertible = false;
+
+        inverseNeutralJointGlobals_[i] =
+            neutralJointGlobals_[i]
+                .inverted(&invertible);
+
+        if (!invertible) {
+            inverseNeutralJointGlobals_[i] =
+                QMatrix4x4();
+        }
     }
 }
 
@@ -1101,6 +1117,8 @@ void MetaHumanViewportWidget::applyJointSkinning(
 
     if (mesh_.joints.empty() ||
         neutralJointGlobals_.size() !=
+            mesh_.joints.size() ||
+        inverseNeutralJointGlobals_.size() !=
             mesh_.joints.size() ||
         output.jointValues.size() <
             mesh_.joints.size() *
@@ -1231,22 +1249,11 @@ void MetaHumanViewportWidget::applyJointSkinning(
                 continue;
             }
 
-            bool invertible = false;
-
-            const QMatrix4x4 inverseBind =
-                neutralJointGlobals_[
-                    influence.jointIndex]
-                    .inverted(
-                        &invertible);
-
-            if (!invertible) {
-                continue;
-            }
-
             const QMatrix4x4 skinMatrix =
                 animatedGlobals[
                     influence.jointIndex] *
-                inverseBind;
+                inverseNeutralJointGlobals_[
+                    influence.jointIndex];
 
             skinnedPosition +=
                 (
