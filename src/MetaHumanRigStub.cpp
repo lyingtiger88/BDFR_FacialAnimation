@@ -51,6 +51,11 @@ std::vector<std::string> MetaHumanRigRuntime::meshNames() const {
     return {};
 }
 
+std::vector<std::uint16_t>
+MetaHumanRigRuntime::meshIndicesForLod(std::uint16_t) const {
+    return {};
+}
+
 bool MetaHumanRigRuntime::extractMesh(
     std::uint16_t,
     MetaHumanMeshData&,
