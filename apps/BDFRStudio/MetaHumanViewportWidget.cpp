@@ -1,15 +1,52 @@
 #include "MetaHumanViewportWidget.h"
 
 #include <QImage>
-#include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QOpenGLTexture>
+#include <QQuaternion>
 #include <QVector3D>
 #include <QWheelEvent>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+namespace {
+
+QMatrix4x4 makeLocalMatrix(
+    const bdfr::metahuman::MetaHumanJoint& joint) {
+
+    QMatrix4x4 result;
+    result.translate(joint.tx, joint.ty, joint.tz);
+
+    const QQuaternion rotation(
+        joint.qw,
+        joint.qx,
+        joint.qy,
+        joint.qz);
+
+    result.rotate(rotation);
+    result.scale(joint.sx, joint.sy, joint.sz);
+    return result;
+}
+
+QQuaternion normalizedDeltaQuaternion(
+    float x,
+    float y,
+    float z,
+    float w) {
+
+    QQuaternion q(w, x, y, z);
+
+    if (q.lengthSquared() < 0.000001F) {
+        return QQuaternion();
+    }
+
+    q.normalize();
+    return q;
+}
+
+} // namespace
 
 MetaHumanViewportWidget::MetaHumanViewportWidget(QWidget* parent)
     : QOpenGLWidget(parent) {
@@ -20,7 +57,10 @@ MetaHumanViewportWidget::MetaHumanViewportWidget(QWidget* parent)
 MetaHumanViewportWidget::~MetaHumanViewportWidget() {
     makeCurrent();
 
-    texture_.reset();
+    baseColorTexture_.reset();
+    normalTexture_.reset();
+    roughnessTexture_.reset();
+    specularTexture_.reset();
 
     if (vertexBuffer_.isCreated()) {
         vertexBuffer_.destroy();
@@ -38,7 +78,8 @@ MetaHumanViewportWidget::~MetaHumanViewportWidget() {
 }
 
 bool MetaHumanViewportWidget::hasMesh() const noexcept {
-    return !mesh_.vertices.empty() && !mesh_.indices.empty();
+    return !mesh_.vertices.empty() &&
+           !mesh_.indices.empty();
 }
 
 QString MetaHumanViewportWidget::meshName() const {
@@ -47,8 +88,12 @@ QString MetaHumanViewportWidget::meshName() const {
 
 void MetaHumanViewportWidget::setMesh(
     const bdfr::metahuman::MetaHumanMeshData& mesh) {
+
     mesh_ = mesh;
+
     rebuildGpuVertices();
+    recalculateTangents();
+    buildNeutralJointGlobals();
     updateCameraBounds();
 
     if (glReady_) {
@@ -63,38 +108,46 @@ void MetaHumanViewportWidget::setMesh(
 void MetaHumanViewportWidget::clearMesh() {
     mesh_ = {};
     gpuVertices_.clear();
+    neutralJointGlobals_.clear();
     update();
 }
 
-bool MetaHumanViewportWidget::loadBaseColorTexture(
+bool MetaHumanViewportWidget::loadTextureInto(
     const QString& path,
+    std::unique_ptr<QOpenGLTexture>& target,
     QString* error) {
 
     QImage image(path);
 
     if (image.isNull()) {
         if (error) {
-            *error = QStringLiteral("Unable to load texture image.");
+            *error =
+                QStringLiteral(
+                    "Unable to load texture image.");
         }
+
         return false;
     }
 
-    image = image.convertToFormat(QImage::Format_RGBA8888);
+    image =
+        image.convertToFormat(
+            QImage::Format_RGBA8888);
 
     makeCurrent();
 
-    texture_.reset();
+    target.reset();
 
-    texture_ = std::make_unique<QOpenGLTexture>(
-        image.mirrored(false, true));
+    target =
+        std::make_unique<QOpenGLTexture>(
+            image.mirrored(false, true));
 
-    texture_->setMinificationFilter(
+    target->setMinificationFilter(
         QOpenGLTexture::LinearMipMapLinear);
 
-    texture_->setMagnificationFilter(
+    target->setMagnificationFilter(
         QOpenGLTexture::Linear);
 
-    texture_->setWrapMode(
+    target->setWrapMode(
         QOpenGLTexture::Repeat);
 
     doneCurrent();
@@ -107,9 +160,50 @@ bool MetaHumanViewportWidget::loadBaseColorTexture(
     return true;
 }
 
-void MetaHumanViewportWidget::clearTexture() {
+bool MetaHumanViewportWidget::loadBaseColorTexture(
+    const QString& path,
+    QString* error) {
+    return loadTextureInto(
+        path,
+        baseColorTexture_,
+        error);
+}
+
+bool MetaHumanViewportWidget::loadNormalTexture(
+    const QString& path,
+    QString* error) {
+    return loadTextureInto(
+        path,
+        normalTexture_,
+        error);
+}
+
+bool MetaHumanViewportWidget::loadRoughnessTexture(
+    const QString& path,
+    QString* error) {
+    return loadTextureInto(
+        path,
+        roughnessTexture_,
+        error);
+}
+
+bool MetaHumanViewportWidget::loadSpecularTexture(
+    const QString& path,
+    QString* error) {
+    return loadTextureInto(
+        path,
+        specularTexture_,
+        error);
+}
+
+void MetaHumanViewportWidget::clearTextures() {
     makeCurrent();
-    texture_.reset();
+
+    baseColorTexture_.reset();
+    normalTexture_.reset();
+    roughnessTexture_.reset();
+    specularTexture_.reset();
+
     doneCurrent();
     update();
 }
@@ -128,18 +222,23 @@ void MetaHumanViewportWidget::setRigOutput(
             output.blendShapes.find(
                 target.channelName);
 
-        if (weightIt == output.blendShapes.end()) {
+        if (weightIt ==
+            output.blendShapes.end()) {
             continue;
         }
 
-        const float weight = weightIt->second;
+        const float weight =
+            weightIt->second;
 
         if (std::fabs(weight) < 0.00001F) {
             continue;
         }
 
-        for (const auto& delta : target.deltas) {
-            if (delta.vertexIndex >= gpuVertices_.size()) {
+        for (const auto& delta :
+             target.deltas) {
+
+            if (delta.vertexIndex >=
+                gpuVertices_.size()) {
                 continue;
             }
 
@@ -152,8 +251,14 @@ void MetaHumanViewportWidget::setRigOutput(
         }
     }
 
-    if (glReady_ && vertexBuffer_.isCreated()) {
+    applyJointSkinning(output);
+    recalculateTangents();
+
+    if (glReady_ &&
+        vertexBuffer_.isCreated()) {
+
         makeCurrent();
+
         vertexBuffer_.bind();
         vertexBuffer_.write(
             0,
@@ -161,7 +266,9 @@ void MetaHumanViewportWidget::setRigOutput(
             static_cast<int>(
                 gpuVertices_.size() *
                 sizeof(GpuVertex)));
+
         vertexBuffer_.release();
+
         doneCurrent();
     }
 
@@ -181,16 +288,37 @@ void MetaHumanViewportWidget::initializeGL() {
         layout(location = 0) in vec3 aPosition;
         layout(location = 1) in vec3 aNormal;
         layout(location = 2) in vec2 aUv;
+        layout(location = 3) in vec3 aTangent;
 
         uniform mat4 uMvp;
         uniform mat4 uModel;
 
+        out vec3 vWorldPosition;
         out vec3 vNormal;
+        out vec3 vTangent;
         out vec2 vUv;
 
         void main() {
-            gl_Position = uMvp * vec4(aPosition, 1.0);
-            vNormal = mat3(uModel) * aNormal;
+            vec4 worldPosition =
+                uModel * vec4(aPosition, 1.0);
+
+            gl_Position =
+                uMvp * vec4(aPosition, 1.0);
+
+            mat3 normalMatrix =
+                transpose(inverse(mat3(uModel)));
+
+            vWorldPosition =
+                worldPosition.xyz;
+
+            vNormal =
+                normalize(
+                    normalMatrix * aNormal);
+
+            vTangent =
+                normalize(
+                    normalMatrix * aTangent);
+
             vUv = aUv;
         }
     )";
@@ -198,31 +326,162 @@ void MetaHumanViewportWidget::initializeGL() {
     static const char* fragmentShader = R"(
         #version 330 core
 
+        in vec3 vWorldPosition;
         in vec3 vNormal;
+        in vec3 vTangent;
         in vec2 vUv;
 
         uniform sampler2D uBaseColor;
-        uniform bool uHasTexture;
+        uniform sampler2D uNormalMap;
+        uniform sampler2D uRoughnessMap;
+        uniform sampler2D uSpecularMap;
+
+        uniform bool uHasBaseColor;
+        uniform bool uHasNormal;
+        uniform bool uHasRoughness;
+        uniform bool uHasSpecular;
 
         out vec4 fragColor;
 
+        vec3 getNormal() {
+            vec3 N = normalize(vNormal);
+
+            if (!uHasNormal) {
+                return N;
+            }
+
+            vec3 T = normalize(
+                vTangent -
+                dot(vTangent, N) * N);
+
+            vec3 B =
+                normalize(cross(N, T));
+
+            mat3 TBN = mat3(T, B, N);
+
+            vec3 tangentNormal =
+                texture(
+                    uNormalMap,
+                    vUv).xyz * 2.0 - 1.0;
+
+            return normalize(
+                TBN * tangentNormal);
+        }
+
         void main() {
             vec3 baseColor =
-                uHasTexture
-                    ? texture(uBaseColor, vUv).rgb
-                    : vec3(0.55, 0.47, 0.43);
+                uHasBaseColor
+                    ? pow(
+                        texture(
+                            uBaseColor,
+                            vUv).rgb,
+                        vec3(2.2))
+                    : vec3(
+                        0.55,
+                        0.43,
+                        0.38);
 
-            vec3 normal = normalize(vNormal);
-            vec3 lightDir = normalize(vec3(0.3, 0.65, 0.7));
+            float roughness =
+                uHasRoughness
+                    ? clamp(
+                        texture(
+                            uRoughnessMap,
+                            vUv).r,
+                        0.04,
+                        1.0)
+                    : 0.58;
 
-            float diffuse =
-                max(dot(normal, lightDir), 0.0);
+            float specular =
+                uHasSpecular
+                    ? clamp(
+                        texture(
+                            uSpecularMap,
+                            vUv).r,
+                        0.0,
+                        1.0)
+                    : 0.32;
 
-            float lighting =
-                0.28 + diffuse * 0.72;
+            vec3 N = getNormal();
+
+            vec3 L =
+                normalize(
+                    vec3(
+                        0.35,
+                        0.65,
+                        0.70));
+
+            vec3 V =
+                normalize(
+                    -vWorldPosition);
+
+            vec3 H =
+                normalize(L + V);
+
+            float NoL =
+                max(dot(N, L), 0.0);
+
+            float NoH =
+                max(dot(N, H), 0.0);
+
+            float shininess =
+                mix(
+                    120.0,
+                    8.0,
+                    roughness);
+
+            float specularTerm =
+                pow(NoH, shininess) *
+                specular;
+
+            // Soft wrap-lighting approximation gives skin a
+            // subtle subsurface-like response without requiring
+            // a full screen-space SSS pass.
+            float wrappedDiffuse =
+                clamp(
+                    (dot(N, L) + 0.35) /
+                    1.35,
+                    0.0,
+                    1.0);
+
+            vec3 warmScatter =
+                vec3(
+                    1.0,
+                    0.24,
+                    0.15) *
+                pow(
+                    1.0 - NoL,
+                    2.0) *
+                0.07;
+
+            vec3 ambient =
+                baseColor * 0.18;
+
+            vec3 diffuse =
+                baseColor *
+                wrappedDiffuse *
+                0.78;
+
+            vec3 highlight =
+                vec3(1.0) *
+                specularTerm *
+                0.55;
+
+            vec3 linearColor =
+                ambient +
+                diffuse +
+                highlight +
+                warmScatter *
+                baseColor;
+
+            vec3 srgb =
+                pow(
+                    max(
+                        linearColor,
+                        vec3(0.0)),
+                    vec3(1.0 / 2.2));
 
             fragColor =
-                vec4(baseColor * lighting, 1.0);
+                vec4(srgb, 1.0);
         }
     )";
 
@@ -252,9 +511,9 @@ void MetaHumanViewportWidget::resizeGL(
 
 void MetaHumanViewportWidget::paintGL() {
     glClearColor(
-        0.035F,
-        0.045F,
-        0.06F,
+        0.022F,
+        0.028F,
+        0.038F,
         1.0F);
 
     glClear(
@@ -274,6 +533,7 @@ void MetaHumanViewportWidget::paintGL() {
             : 1.0F;
 
     QMatrix4x4 projection;
+
     projection.perspective(
         36.0F,
         aspect,
@@ -282,16 +542,29 @@ void MetaHumanViewportWidget::paintGL() {
 
     const float distance =
         std::max(
-            meshRadius_ * 3.2F / zoom_,
+            meshRadius_ *
+                3.2F /
+                zoom_,
             0.1F);
 
     QMatrix4x4 view;
+
     view.lookAt(
-        QVector3D(0.0F, 0.0F, distance),
-        QVector3D(0.0F, 0.0F, 0.0F),
-        QVector3D(0.0F, 1.0F, 0.0F));
+        QVector3D(
+            0.0F,
+            0.0F,
+            distance),
+        QVector3D(
+            0.0F,
+            0.0F,
+            0.0F),
+        QVector3D(
+            0.0F,
+            1.0F,
+            0.0F));
 
     QMatrix4x4 model;
+
     model.rotate(
         pitchDegrees_,
         1.0F,
@@ -308,9 +581,12 @@ void MetaHumanViewportWidget::paintGL() {
         -meshCenter_);
 
     const QMatrix4x4 mvp =
-        projection * view * model;
+        projection *
+        view *
+        model;
 
     shader_.bind();
+
     shader_.setUniformValue(
         "uMvp",
         mvp);
@@ -320,15 +596,51 @@ void MetaHumanViewportWidget::paintGL() {
         model);
 
     shader_.setUniformValue(
-        "uHasTexture",
-        texture_ != nullptr);
+        "uHasBaseColor",
+        baseColorTexture_ != nullptr);
+
+    shader_.setUniformValue(
+        "uHasNormal",
+        normalTexture_ != nullptr);
+
+    shader_.setUniformValue(
+        "uHasRoughness",
+        roughnessTexture_ != nullptr);
+
+    shader_.setUniformValue(
+        "uHasSpecular",
+        specularTexture_ != nullptr);
 
     shader_.setUniformValue(
         "uBaseColor",
         0);
 
-    if (texture_) {
-        texture_->bind(0);
+    shader_.setUniformValue(
+        "uNormalMap",
+        1);
+
+    shader_.setUniformValue(
+        "uRoughnessMap",
+        2);
+
+    shader_.setUniformValue(
+        "uSpecularMap",
+        3);
+
+    if (baseColorTexture_) {
+        baseColorTexture_->bind(0);
+    }
+
+    if (normalTexture_) {
+        normalTexture_->bind(1);
+    }
+
+    if (roughnessTexture_) {
+        roughnessTexture_->bind(2);
+    }
+
+    if (specularTexture_) {
+        specularTexture_->bind(3);
     }
 
     vao_.bind();
@@ -342,8 +654,20 @@ void MetaHumanViewportWidget::paintGL() {
 
     vao_.release();
 
-    if (texture_) {
-        texture_->release();
+    if (specularTexture_) {
+        specularTexture_->release();
+    }
+
+    if (roughnessTexture_) {
+        roughnessTexture_->release();
+    }
+
+    if (normalTexture_) {
+        normalTexture_->release();
+    }
+
+    if (baseColorTexture_) {
+        baseColorTexture_->release();
     }
 
     shader_.release();
@@ -351,30 +675,42 @@ void MetaHumanViewportWidget::paintGL() {
 
 void MetaHumanViewportWidget::mousePressEvent(
     QMouseEvent* event) {
+
     lastMousePosition_ =
-        event->position().toPoint();
+        event
+            ->position()
+            .toPoint();
 }
 
 void MetaHumanViewportWidget::mouseMoveEvent(
     QMouseEvent* event) {
-    if (!(event->buttons() & Qt::LeftButton)) {
+
+    if (!(event->buttons() &
+          Qt::LeftButton)) {
         return;
     }
 
     const QPoint position =
-        event->position().toPoint();
+        event
+            ->position()
+            .toPoint();
 
     const QPoint delta =
-        position - lastMousePosition_;
+        position -
+        lastMousePosition_;
 
     lastMousePosition_ =
         position;
 
     yawDegrees_ +=
-        static_cast<float>(delta.x()) * 0.45F;
+        static_cast<float>(
+            delta.x()) *
+        0.45F;
 
     pitchDegrees_ +=
-        static_cast<float>(delta.y()) * 0.35F;
+        static_cast<float>(
+            delta.y()) *
+        0.35F;
 
     pitchDegrees_ =
         std::clamp(
@@ -387,9 +723,12 @@ void MetaHumanViewportWidget::mouseMoveEvent(
 
 void MetaHumanViewportWidget::wheelEvent(
     QWheelEvent* event) {
+
     const float step =
         static_cast<float>(
-            event->angleDelta().y()) /
+            event
+                ->angleDelta()
+                .y()) /
         1200.0F;
 
     zoom_ =
@@ -403,10 +742,13 @@ void MetaHumanViewportWidget::wheelEvent(
 
 void MetaHumanViewportWidget::rebuildGpuVertices() {
     gpuVertices_.clear();
+
     gpuVertices_.reserve(
         mesh_.vertices.size());
 
-    for (const auto& vertex : mesh_.vertices) {
+    for (const auto& vertex :
+         mesh_.vertices) {
+
         gpuVertices_.push_back(
             {
                 vertex.px,
@@ -416,8 +758,379 @@ void MetaHumanViewportWidget::rebuildGpuVertices() {
                 vertex.ny,
                 vertex.nz,
                 vertex.u,
-                vertex.v
+                vertex.v,
+                1.0F,
+                0.0F,
+                0.0F
             });
+    }
+}
+
+void MetaHumanViewportWidget::recalculateTangents() {
+    for (auto& vertex :
+         gpuVertices_) {
+        vertex.tx = 0.0F;
+        vertex.ty = 0.0F;
+        vertex.tz = 0.0F;
+    }
+
+    for (std::size_t i = 0;
+         i + 2 < mesh_.indices.size();
+         i += 3) {
+
+        const auto i0 =
+            mesh_.indices[i + 0];
+
+        const auto i1 =
+            mesh_.indices[i + 1];
+
+        const auto i2 =
+            mesh_.indices[i + 2];
+
+        if (i0 >= gpuVertices_.size() ||
+            i1 >= gpuVertices_.size() ||
+            i2 >= gpuVertices_.size()) {
+            continue;
+        }
+
+        auto& v0 = gpuVertices_[i0];
+        auto& v1 = gpuVertices_[i1];
+        auto& v2 = gpuVertices_[i2];
+
+        const QVector3D p0(
+            v0.px,
+            v0.py,
+            v0.pz);
+
+        const QVector3D p1(
+            v1.px,
+            v1.py,
+            v1.pz);
+
+        const QVector3D p2(
+            v2.px,
+            v2.py,
+            v2.pz);
+
+        const QVector2D uv0(
+            v0.u,
+            v0.v);
+
+        const QVector2D uv1(
+            v1.u,
+            v1.v);
+
+        const QVector2D uv2(
+            v2.u,
+            v2.v);
+
+        const QVector3D edge1 =
+            p1 - p0;
+
+        const QVector3D edge2 =
+            p2 - p0;
+
+        const QVector2D duv1 =
+            uv1 - uv0;
+
+        const QVector2D duv2 =
+            uv2 - uv0;
+
+        const float denominator =
+            duv1.x() * duv2.y() -
+            duv1.y() * duv2.x();
+
+        if (std::fabs(denominator) <
+            0.0000001F) {
+            continue;
+        }
+
+        const float inverse =
+            1.0F /
+            denominator;
+
+        const QVector3D tangent =
+            (
+                edge1 * duv2.y() -
+                edge2 * duv1.y()
+            ) * inverse;
+
+        for (const auto index :
+             {i0, i1, i2}) {
+            auto& vertex =
+                gpuVertices_[index];
+
+            vertex.tx += tangent.x();
+            vertex.ty += tangent.y();
+            vertex.tz += tangent.z();
+        }
+    }
+
+    for (auto& vertex :
+         gpuVertices_) {
+
+        QVector3D tangent(
+            vertex.tx,
+            vertex.ty,
+            vertex.tz);
+
+        if (tangent.lengthSquared() <
+            0.000001F) {
+            tangent =
+                QVector3D(
+                    1.0F,
+                    0.0F,
+                    0.0F);
+        } else {
+            tangent.normalize();
+        }
+
+        vertex.tx = tangent.x();
+        vertex.ty = tangent.y();
+        vertex.tz = tangent.z();
+    }
+}
+
+void MetaHumanViewportWidget::buildNeutralJointGlobals() {
+    neutralJointGlobals_.clear();
+
+    neutralJointGlobals_.resize(
+        mesh_.joints.size());
+
+    for (std::size_t i = 0;
+         i < mesh_.joints.size();
+         ++i) {
+
+        const auto& joint =
+            mesh_.joints[i];
+
+        const QMatrix4x4 local =
+            makeLocalMatrix(joint);
+
+        const std::uint16_t parent =
+            joint.parentIndex;
+
+        if (parent < i &&
+            parent <
+                neutralJointGlobals_.size()) {
+
+            neutralJointGlobals_[i] =
+                neutralJointGlobals_[parent] *
+                local;
+
+        } else {
+            neutralJointGlobals_[i] =
+                local;
+        }
+    }
+}
+
+void MetaHumanViewportWidget::applyJointSkinning(
+    const bdfr::metahuman::MetaHumanRigOutput& output) {
+
+    constexpr std::size_t stride = 10;
+
+    if (mesh_.joints.empty() ||
+        neutralJointGlobals_.size() !=
+            mesh_.joints.size() ||
+        output.jointValues.size() <
+            mesh_.joints.size() *
+                stride ||
+        mesh_.skinInfluences.size() !=
+            gpuVertices_.size()) {
+        return;
+    }
+
+    std::vector<QMatrix4x4>
+        animatedGlobals(
+            mesh_.joints.size());
+
+    for (std::size_t i = 0;
+         i < mesh_.joints.size();
+         ++i) {
+
+        const auto& bind =
+            mesh_.joints[i];
+
+        const std::size_t base =
+            i * stride;
+
+        QMatrix4x4 local;
+
+        local.translate(
+            bind.tx +
+                output.jointValues[
+                    base + 0],
+            bind.ty +
+                output.jointValues[
+                    base + 1],
+            bind.tz +
+                output.jointValues[
+                    base + 2]);
+
+        const QQuaternion bindRotation(
+            bind.qw,
+            bind.qx,
+            bind.qy,
+            bind.qz);
+
+        const QQuaternion deltaRotation =
+            normalizedDeltaQuaternion(
+                output.jointValues[
+                    base + 3],
+                output.jointValues[
+                    base + 4],
+                output.jointValues[
+                    base + 5],
+                output.jointValues[
+                    base + 6]);
+
+        local.rotate(
+            bindRotation *
+            deltaRotation);
+
+        local.scale(
+            bind.sx +
+                output.jointValues[
+                    base + 7],
+            bind.sy +
+                output.jointValues[
+                    base + 8],
+            bind.sz +
+                output.jointValues[
+                    base + 9]);
+
+        const std::uint16_t parent =
+            bind.parentIndex;
+
+        if (parent < i &&
+            parent <
+                animatedGlobals.size()) {
+
+            animatedGlobals[i] =
+                animatedGlobals[parent] *
+                local;
+
+        } else {
+            animatedGlobals[i] =
+                local;
+        }
+    }
+
+    for (std::size_t vertexIndex = 0;
+         vertexIndex < gpuVertices_.size();
+         ++vertexIndex) {
+
+        const auto& influences =
+            mesh_.skinInfluences[
+                vertexIndex];
+
+        if (influences.empty()) {
+            continue;
+        }
+
+        const auto original =
+            gpuVertices_[vertexIndex];
+
+        const QVector3D originalPosition(
+            original.px,
+            original.py,
+            original.pz);
+
+        const QVector3D originalNormal(
+            original.nx,
+            original.ny,
+            original.nz);
+
+        QVector3D skinnedPosition(
+            0.0F,
+            0.0F,
+            0.0F);
+
+        QVector3D skinnedNormal(
+            0.0F,
+            0.0F,
+            0.0F);
+
+        float totalWeight = 0.0F;
+
+        for (const auto& influence :
+             influences) {
+
+            if (influence.jointIndex >=
+                animatedGlobals.size()) {
+                continue;
+            }
+
+            bool invertible = false;
+
+            const QMatrix4x4 inverseBind =
+                neutralJointGlobals_[
+                    influence.jointIndex]
+                    .inverted(
+                        &invertible);
+
+            if (!invertible) {
+                continue;
+            }
+
+            const QMatrix4x4 skinMatrix =
+                animatedGlobals[
+                    influence.jointIndex] *
+                inverseBind;
+
+            skinnedPosition +=
+                (
+                    skinMatrix *
+                    originalPosition
+                ) *
+                influence.weight;
+
+            skinnedNormal +=
+                skinMatrix
+                    .mapVector(
+                        originalNormal) *
+                influence.weight;
+
+            totalWeight +=
+                influence.weight;
+        }
+
+        if (totalWeight <= 0.00001F) {
+            continue;
+        }
+
+        skinnedPosition /=
+            totalWeight;
+
+        if (skinnedNormal.lengthSquared() >
+            0.000001F) {
+            skinnedNormal.normalize();
+        } else {
+            skinnedNormal =
+                originalNormal;
+        }
+
+        auto& vertex =
+            gpuVertices_[vertexIndex];
+
+        vertex.px =
+            skinnedPosition.x();
+
+        vertex.py =
+            skinnedPosition.y();
+
+        vertex.pz =
+            skinnedPosition.z();
+
+        vertex.nx =
+            skinnedNormal.x();
+
+        vertex.ny =
+            skinnedNormal.y();
+
+        vertex.nz =
+            skinnedNormal.z();
     }
 }
 
@@ -431,6 +1144,7 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
     vao_.bind();
 
     vertexBuffer_.bind();
+
     vertexBuffer_.setUsagePattern(
         QOpenGLBuffer::DynamicDraw);
 
@@ -441,6 +1155,7 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
             sizeof(GpuVertex)));
 
     indexBuffer_.bind();
+
     indexBuffer_.setUsagePattern(
         QOpenGLBuffer::StaticDraw);
 
@@ -453,6 +1168,7 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
     shader_.bind();
 
     shader_.enableAttributeArray(0);
+
     shader_.setAttributeBuffer(
         0,
         GL_FLOAT,
@@ -461,6 +1177,7 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
         sizeof(GpuVertex));
 
     shader_.enableAttributeArray(1);
+
     shader_.setAttributeBuffer(
         1,
         GL_FLOAT,
@@ -469,11 +1186,21 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
         sizeof(GpuVertex));
 
     shader_.enableAttributeArray(2);
+
     shader_.setAttributeBuffer(
         2,
         GL_FLOAT,
         offsetof(GpuVertex, u),
         2,
+        sizeof(GpuVertex));
+
+    shader_.enableAttributeArray(3);
+
+    shader_.setAttributeBuffer(
+        3,
+        GL_FLOAT,
+        offsetof(GpuVertex, tx),
+        3,
         sizeof(GpuVertex));
 
     shader_.release();
@@ -486,9 +1213,14 @@ void MetaHumanViewportWidget::uploadMeshIfReady() {
 void MetaHumanViewportWidget::updateCameraBounds() {
     if (mesh_.vertices.empty()) {
         meshCenter_ =
-            QVector3D(0.0F, 0.0F, 0.0F);
+            QVector3D(
+                0.0F,
+                0.0F,
+                0.0F);
 
-        meshRadius_ = 1.0F;
+        meshRadius_ =
+            1.0F;
+
         return;
     }
 
@@ -502,27 +1234,50 @@ void MetaHumanViewportWidget::updateCameraBounds() {
         std::numeric_limits<float>::lowest(),
         std::numeric_limits<float>::lowest());
 
-    for (const auto& vertex : mesh_.vertices) {
+    for (const auto& vertex :
+         mesh_.vertices) {
+
         minPoint.setX(
-            std::min(minPoint.x(), vertex.px));
+            std::min(
+                minPoint.x(),
+                vertex.px));
+
         minPoint.setY(
-            std::min(minPoint.y(), vertex.py));
+            std::min(
+                minPoint.y(),
+                vertex.py));
+
         minPoint.setZ(
-            std::min(minPoint.z(), vertex.pz));
+            std::min(
+                minPoint.z(),
+                vertex.pz));
 
         maxPoint.setX(
-            std::max(maxPoint.x(), vertex.px));
+            std::max(
+                maxPoint.x(),
+                vertex.px));
+
         maxPoint.setY(
-            std::max(maxPoint.y(), vertex.py));
+            std::max(
+                maxPoint.y(),
+                vertex.py));
+
         maxPoint.setZ(
-            std::max(maxPoint.z(), vertex.pz));
+            std::max(
+                maxPoint.z(),
+                vertex.pz));
     }
 
     meshCenter_ =
-        (minPoint + maxPoint) * 0.5F;
+        (minPoint + maxPoint) *
+        0.5F;
 
     meshRadius_ =
         std::max(
-            (maxPoint - minPoint).length() * 0.5F,
+            (
+                maxPoint -
+                minPoint
+            ).length() *
+                0.5F,
             0.001F);
 }
