@@ -6,6 +6,7 @@
 #include "bdfr/runtime/UdpTransport.h"
 
 #include <QAbstractItemView>
+#include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QDockWidget>
@@ -16,6 +17,7 @@
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QHostAddress>
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -35,6 +37,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <cmath>
 #include <filesystem>
 #include <map>
@@ -428,7 +431,35 @@ QWidget* StudioMainWindow::buildProjectPanel() {
     metaLayout->addWidget(metaHumanStatsLabel_);
     metaLayout->addWidget(metaHumanEvalLabel_);
 
+    auto* faceBuilderBox =
+        new QGroupBox(QStringLiteral("FaceBuilder / eos"));
+
+    auto* faceBuilderLayout =
+        new QVBoxLayout(faceBuilderBox);
+
+    buildFaceButton_ =
+        new QPushButton(QStringLiteral("Create 3D Face from Photo…"));
+
+    connect(buildFaceButton_, &QPushButton::clicked, this, [this] {
+        buildFaceFromPhoto();
+    });
+
+    faceBuilderStatusLabel_ =
+        new QLabel(
+            bdfr::facebuilder::FaceBuilder::backendAvailable()
+                ? QStringLiteral("Backend: eos 1.5.0 — Ready")
+                : QStringLiteral("Backend: unavailable in this build"));
+
+    faceBuilderStatusLabel_->setWordWrap(true);
+
+    buildFaceButton_->setEnabled(
+        bdfr::facebuilder::FaceBuilder::backendAvailable());
+
+    faceBuilderLayout->addWidget(buildFaceButton_);
+    faceBuilderLayout->addWidget(faceBuilderStatusLabel_);
+
     layout->addWidget(projectTree_, 1);
+    layout->addWidget(faceBuilderBox);
     layout->addWidget(metaHumanBox);
     layout->addWidget(info);
 
@@ -878,6 +909,249 @@ void StudioMainWindow::refreshUi() {
     }
 
     updateMetaHumanEvaluation(frame);
+}
+
+
+void StudioMainWindow::buildFaceFromPhoto() {
+    if (!bdfr::facebuilder::FaceBuilder::backendAvailable()) {
+        QMessageBox::warning(
+            this,
+            QStringLiteral("FaceBuilder unavailable"),
+            QStringLiteral(
+                "This Studio build does not include eos FaceBuilder."));
+        return;
+    }
+
+    const QString imagePath =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Select Face Photo"),
+            QString(),
+            QStringLiteral(
+                "Images (*.png *.jpg *.jpeg *.bmp *.webp);;"
+                "All files (*.*)"));
+
+    if (imagePath.isEmpty()) {
+        return;
+    }
+
+    const QString landmarksPath =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Select 68-point Landmarks"),
+            QString(),
+            QStringLiteral(
+                "ibug landmarks (*.pts);;"
+                "All files (*.*)"));
+
+    if (landmarksPath.isEmpty()) {
+        return;
+    }
+
+    const QString modelPath =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Select eos Morphable Model"),
+            QString(),
+            QStringLiteral(
+                "eos models (*.bin);;"
+                "All files (*.*)"));
+
+    if (modelPath.isEmpty()) {
+        return;
+    }
+
+    const QString mappingPath =
+        QFileDialog::getOpenFileName(
+            this,
+            QStringLiteral("Select Landmark Mapping"),
+            QString(),
+            QStringLiteral(
+                "Landmark mappings (*.txt *.toml);;"
+                "All files (*.*)"));
+
+    if (mappingPath.isEmpty()) {
+        return;
+    }
+
+    QImage sourceImage(imagePath);
+
+    if (sourceImage.isNull()) {
+        QMessageBox::critical(
+            this,
+            QStringLiteral("FaceBuilder"),
+            QStringLiteral("Unable to load the selected image."));
+        return;
+    }
+
+    sourceImage =
+        sourceImage.convertToFormat(
+            QImage::Format_RGBA8888);
+
+    bdfr::facebuilder::FaceBuilderImage image;
+    image.width = sourceImage.width();
+    image.height = sourceImage.height();
+
+    image.rgba.resize(
+        static_cast<std::size_t>(image.width) *
+        static_cast<std::size_t>(image.height) *
+        4U);
+
+    for (int y = 0; y < image.height; ++y) {
+        const auto* row =
+            sourceImage.constScanLine(y);
+
+        std::memcpy(
+            image.rgba.data() +
+                static_cast<std::size_t>(y) *
+                static_cast<std::size_t>(image.width) *
+                4U,
+            row,
+            static_cast<std::size_t>(image.width) * 4U);
+    }
+
+    std::vector<
+        bdfr::facebuilder::FaceBuilderLandmark>
+        landmarks;
+
+    std::string error;
+
+    if (!bdfr::facebuilder::FaceBuilder::loadPtsLandmarks(
+            landmarksPath.toUtf8().constData(),
+            landmarks,
+            &error)) {
+
+        QMessageBox::critical(
+            this,
+            QStringLiteral("FaceBuilder landmarks"),
+            QString::fromStdString(error));
+        return;
+    }
+
+    bdfr::facebuilder::FaceBuilderOptions options;
+    options.modelPath =
+        modelPath.toUtf8().constData();
+
+    options.landmarkMappingPath =
+        mappingPath.toUtf8().constData();
+
+    options.textureResolution = 512;
+    options.shapeCoefficientCount = 40;
+    options.regularization = 30.0F;
+
+    bdfr::facebuilder::FaceBuilderResult result;
+
+    faceBuilderStatusLabel_->setText(
+        QStringLiteral("Fitting 3D face…"));
+
+    QApplication::setOverrideCursor(
+        Qt::WaitCursor);
+
+    const bool success =
+        faceBuilder_.fit(
+            image,
+            landmarks,
+            options,
+            result,
+            &error);
+
+    QApplication::restoreOverrideCursor();
+
+    if (!success) {
+        faceBuilderStatusLabel_->setText(
+            QStringLiteral("Face fitting failed"));
+
+        QMessageBox::critical(
+            this,
+            QStringLiteral("FaceBuilder fitting failed"),
+            QString::fromStdString(error));
+        return;
+    }
+
+    bdfr::metahuman::MetaHumanMeshData previewMesh;
+    previewMesh.name = "EOS Personalized Face";
+
+    previewMesh.vertices.reserve(
+        result.mesh.vertices.size());
+
+    for (const auto& source :
+         result.mesh.vertices) {
+
+        bdfr::metahuman::MetaHumanMeshVertex vertex;
+
+        vertex.px = source.px;
+        vertex.py = source.py;
+        vertex.pz = source.pz;
+
+        vertex.nx = source.nx;
+        vertex.ny = source.ny;
+        vertex.nz = source.nz;
+
+        vertex.u = source.u;
+        vertex.v = source.v;
+        vertex.materialClass = 0.0F;
+
+        previewMesh.vertices.push_back(
+            vertex);
+    }
+
+    previewMesh.indices =
+        result.mesh.indices;
+
+    metaHumanViewport_->clearTextures();
+    metaHumanViewport_->setMesh(
+        previewMesh);
+
+    QImage generatedTexture(
+        result.texture.width,
+        result.texture.height,
+        QImage::Format_RGBA8888);
+
+    if (result.texture.valid()) {
+        for (int y = 0;
+             y < result.texture.height;
+             ++y) {
+
+            std::memcpy(
+                generatedTexture.scanLine(y),
+                result.texture.rgba.data() +
+                    static_cast<std::size_t>(y) *
+                    static_cast<std::size_t>(
+                        result.texture.width) *
+                    4U,
+                static_cast<std::size_t>(
+                    result.texture.width) *
+                    4U);
+        }
+
+        QString textureError;
+
+        metaHumanViewport_->setBaseColorImage(
+            generatedTexture,
+            &textureError);
+    }
+
+    if (previewTabs_) {
+        previewTabs_->setCurrentWidget(
+            metaHumanViewport_);
+    }
+
+    faceBuilderStatusLabel_->setText(
+        QStringLiteral(
+            "READY — %1 landmarks • %2 vertices • %3 triangles\n"
+            "Pose Y %4°  P %5°  R %6° • %7 shape coefficients")
+            .arg(result.usedLandmarks)
+            .arg(result.mesh.vertices.size())
+            .arg(result.mesh.indices.size() / 3)
+            .arg(result.yawDegrees, 0, 'f', 1)
+            .arg(result.pitchDegrees, 0, 'f', 1)
+            .arg(result.rollDegrees, 0, 'f', 1)
+            .arg(result.shapeCoefficients.size()));
+
+    statusBar()->showMessage(
+        QStringLiteral("FaceBuilder created a personalized 3D face from %1")
+            .arg(imagePath),
+        10000);
 }
 
 
