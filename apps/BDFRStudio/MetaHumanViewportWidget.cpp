@@ -312,6 +312,49 @@ bool MetaHumanViewportWidget::loadBaseColorTexture(
         error);
 }
 
+bool MetaHumanViewportWidget::setBaseColorImage(
+    const QImage& sourceImage,
+    QString* error) {
+
+    if (sourceImage.isNull()) {
+        if (error) {
+            *error =
+                QStringLiteral("Generated FaceBuilder texture image is empty.");
+        }
+        return false;
+    }
+
+    QImage image =
+        sourceImage.convertToFormat(
+            QImage::Format_RGBA8888);
+
+    makeCurrent();
+
+    baseColorTexture_.reset();
+
+    baseColorTexture_ =
+        std::make_unique<QOpenGLTexture>(
+            image.mirrored(false, true));
+
+    baseColorTexture_->setMinificationFilter(
+        QOpenGLTexture::LinearMipMapLinear);
+
+    baseColorTexture_->setMagnificationFilter(
+        QOpenGLTexture::Linear);
+
+    baseColorTexture_->setWrapMode(
+        QOpenGLTexture::Repeat);
+
+    doneCurrent();
+
+    if (error) {
+        error->clear();
+    }
+
+    update();
+    return true;
+}
+
 bool MetaHumanViewportWidget::loadNormalTexture(
     const QString& path,
     QString* error) {
