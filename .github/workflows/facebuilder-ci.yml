@@ -1,0 +1,41 @@
+name: FaceBuilder eos CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'include/bdfr/facebuilder/**'
+      - 'src/FaceBuilder*'
+      - 'tests/test_facebuilder_eos.cpp'
+      - 'tools/bdfr_facebuilder_probe.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/facebuilder-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'include/bdfr/facebuilder/**'
+      - 'src/FaceBuilder*'
+      - 'tests/test_facebuilder_eos.cpp'
+      - 'tools/bdfr_facebuilder_probe.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/facebuilder-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  eos-facebuilder:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure eos FaceBuilder
+        run: cmake -S . -B build-facebuilder -DBDFR_ENABLE_EOS_FACEBUILDER=ON
+
+      - name: Build FaceBuilder
+        run: cmake --build build-facebuilder --config Release --target bdfr_facebuilder_eos_tests bdfr_facebuilder_probe --parallel
+
+      - name: Run real eos fitting test
+        run: ctest --test-dir build-facebuilder -C Release -R "bdfr_facebuilder" --output-on-failure
