@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
 
     QCoreApplication::setOrganizationName("BDFR");
     QCoreApplication::setApplicationName("BDFR Studio");
-    QCoreApplication::setApplicationVersion("0.1.0");
+    QCoreApplication::setApplicationVersion("0.5.0");
 
     QFont font = app.font();
     font.setPointSize(10);
