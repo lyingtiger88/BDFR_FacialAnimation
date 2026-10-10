@@ -4,6 +4,7 @@
 #include "bdfr/mocap/ExternalMocap.h"
 #include "bdfr/runtime/LiveSessionReceiver.h"
 #include "bdfr/metahuman/MetaHumanRig.h"
+#include "bdfr/facebuilder/FaceBuilder.h"
 
 #include <QElapsedTimer>
 #include <QMainWindow>
@@ -69,6 +70,8 @@ private:
     void loadSelectedMetaHumanMesh();
     void updateMetaHumanEvaluation(const bdfr::FacialFrame& frame);
 
+    void buildFaceFromPhoto();
+
     void toggleRecording();
     void saveRecording();
 
@@ -102,6 +105,9 @@ private:
     QPushButton* loadSpecularButton_ = nullptr;
     QComboBox* metaHumanMeshCombo_ = nullptr;
 
+    QPushButton* buildFaceButton_ = nullptr;
+    QLabel* faceBuilderStatusLabel_ = nullptr;
+
     QLabel* connectionStateLabel_ = nullptr;
     QLabel* sourceLabel_ = nullptr;
     QLabel* localAddressLabel_ = nullptr;
@@ -132,4 +138,5 @@ private:
     QTreeWidget* projectTree_ = nullptr;
 
     bdfr::metahuman::MetaHumanRigRuntime metaHumanRig_;
+    bdfr::facebuilder::FaceBuilder faceBuilder_;
 };
