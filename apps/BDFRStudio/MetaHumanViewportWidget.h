@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
+class QImage;
 class QMouseEvent;
 class QOpenGLTexture;
 class QWheelEvent;
@@ -31,6 +32,7 @@ public:
     void clearMesh();
 
     bool loadBaseColorTexture(const QString& path, QString* error = nullptr);
+    bool setBaseColorImage(const QImage& image, QString* error = nullptr);
     bool loadNormalTexture(const QString& path, QString* error = nullptr);
     bool loadRoughnessTexture(const QString& path, QString* error = nullptr);
     bool loadSpecularTexture(const QString& path, QString* error = nullptr);
