@@ -192,6 +192,26 @@ add_test(
     COMMAND bdfr_facebuilder_probe
 )
 
+if(BDFR_ENABLE_EOS_FACEBUILDER)
+    add_executable(
+        bdfr_facebuilder_eos_tests
+        tests/test_facebuilder_eos.cpp
+    )
+    target_link_libraries(
+        bdfr_facebuilder_eos_tests
+        PRIVATE bdfr_facebuilder
+    )
+    target_compile_definitions(
+        bdfr_facebuilder_eos_tests
+        PRIVATE
+        BDFR_EOS_TEST_DATA_DIR="${eos_SOURCE_DIR}"
+    )
+    add_test(
+        NAME bdfr_facebuilder_eos_tests
+        COMMAND bdfr_facebuilder_eos_tests
+    )
+endif()
+
 # Optional MetaHuman / OpenRigLogic integration.
 if(BDFR_ENABLE_OPENRIGLOGIC)
     include(FetchContent)
