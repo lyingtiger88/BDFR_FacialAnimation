@@ -44,7 +44,7 @@ jobs:
 
       - name: Configure
         shell: pwsh
-        run: cmake -S . -B build-studio -DBDFR_BUILD_STUDIO=ON -DBDFR_ENABLE_OPENRIGLOGIC=ON
+        run: cmake -S . -B build-studio -DBDFR_BUILD_STUDIO=ON -DBDFR_ENABLE_OPENRIGLOGIC=ON -DBDFR_ENABLE_EOS_FACEBUILDER=ON
 
       - name: Build Studio and tests
         shell: pwsh
