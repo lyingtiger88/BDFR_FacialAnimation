@@ -336,3 +336,22 @@ Current integration:
 OpenRigLogic remains isolated from the engine-independent BDFR Core.
 
 See [MetaHuman / OpenRigLogic integration](Docs/METAHUMAN_OPENRIGLOGIC.md).
+
+
+## FaceBuilder / eos
+
+BDFR Studio includes an optional eos-powered 3D Morphable Model fitting pipeline.
+
+Current workflow:
+
+- source face photo
+- 68-point ibug landmarks
+- user-selected eos-compatible morphable model and landmark mapping
+- personalized 3D shape fitting
+- camera pose estimation
+- UV texture extraction from the photo
+- direct preview in the BDFR Studio 3D viewport
+
+The eos source code is Apache-2.0. BDFR does not bundle the Surrey Face Model in release packages because that model asset has separate licensing terms.
+
+See [FaceBuilder documentation](Docs/FACEBUILDER_EOS.md) and [Studio test workflow](Docs/FACEBUILDER_STUDIO_TEST.md).
