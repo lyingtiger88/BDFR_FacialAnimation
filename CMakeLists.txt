@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BDFR_BUILD_STUDIO "Build the Qt desktop BDFR Studio application" OFF)
 option(BDFR_ENABLE_OPENRIGLOGIC "Enable Epic OpenRigLogic MetaHuman DNA runtime" OFF)
+option(BDFR_ENABLE_EOS_FACEBUILDER "Enable eos-based photo-to-3D FaceBuilder" OFF)
 
 add_library(bdfr_core
     src/CurveRegistry.cpp
@@ -113,6 +114,83 @@ add_test(NAME bdfr_initial_smoke_tests COMMAND bdfr_initial_smoke_tests)
 add_executable(bdfr_live_receiver tools/bdfr_live_receiver.cpp)
 target_link_libraries(bdfr_live_receiver PRIVATE bdfr_core)
 
+
+
+# Optional photo-to-3D FaceBuilder powered by eos.
+if(BDFR_ENABLE_EOS_FACEBUILDER)
+    include(FetchContent)
+
+    set(EOS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(EOS_BUILD_CERES_EXAMPLE OFF CACHE BOOL "" FORCE)
+    set(EOS_BUILD_UTILS OFF CACHE BOOL "" FORCE)
+    set(EOS_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
+    set(EOS_GENERATE_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
+    set(EOS_GENERATE_MATLAB_BINDINGS OFF CACHE BOOL "" FORCE)
+
+    FetchContent_Declare(
+        eos
+        GIT_REPOSITORY https://github.com/patrikhuber/eos.git
+        GIT_TAG master
+        GIT_SHALLOW FALSE
+        GIT_SUBMODULES_RECURSE TRUE
+    )
+
+    FetchContent_MakeAvailable(eos)
+
+    add_library(bdfr_facebuilder
+        src/FaceBuilderEos.cpp
+    )
+    target_compile_definitions(
+        bdfr_facebuilder
+        PUBLIC BDFR_HAS_EOS_FACEBUILDER=1
+    )
+    target_link_libraries(
+        bdfr_facebuilder
+        PUBLIC bdfr_core eos
+    )
+else()
+    add_library(bdfr_facebuilder
+        src/FaceBuilderStub.cpp
+    )
+    target_compile_definitions(
+        bdfr_facebuilder
+        PUBLIC BDFR_HAS_EOS_FACEBUILDER=0
+    )
+    target_link_libraries(
+        bdfr_facebuilder
+        PUBLIC bdfr_core
+    )
+endif()
+
+target_include_directories(
+    bdfr_facebuilder
+    PUBLIC include
+)
+
+if(MSVC)
+    target_compile_options(
+        bdfr_facebuilder
+        PRIVATE /W4 /permissive-
+    )
+else()
+    target_compile_options(
+        bdfr_facebuilder
+        PRIVATE -Wall -Wextra -Wpedantic
+    )
+endif()
+
+add_executable(
+    bdfr_facebuilder_probe
+    tools/bdfr_facebuilder_probe.cpp
+)
+target_link_libraries(
+    bdfr_facebuilder_probe
+    PRIVATE bdfr_facebuilder
+)
+add_test(
+    NAME bdfr_facebuilder_probe_backend
+    COMMAND bdfr_facebuilder_probe
+)
 
 # Optional MetaHuman / OpenRigLogic integration.
 if(BDFR_ENABLE_OPENRIGLOGIC)
