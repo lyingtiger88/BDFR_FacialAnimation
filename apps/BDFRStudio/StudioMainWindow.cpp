@@ -79,7 +79,7 @@ QProgressBar* makeGauge() {
 } // namespace
 
 StudioMainWindow::StudioMainWindow() {
-    setWindowTitle(QStringLiteral("BDFR Studio v0.3 — MetaHuman Rig"));
+    setWindowTitle(QStringLiteral("BDFR Studio v0.5 — FaceBuilder + MetaHuman"));
     resize(1440, 880);
     setMinimumSize(1080, 680);
 
