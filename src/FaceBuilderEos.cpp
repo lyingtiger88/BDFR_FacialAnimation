@@ -476,6 +476,7 @@ bool FaceBuilder::fit(
                     affineCamera,
                     imagePoints,
                     vertexIndices,
+                    Eigen::VectorXf(),
                     options.regularization,
                     coefficientCount);
 
