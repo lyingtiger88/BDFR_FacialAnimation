@@ -15,6 +15,7 @@ qt_add_executable(BDFRStudio
 target_link_libraries(BDFRStudio PRIVATE
     bdfr_core
     bdfr_metahuman
+    bdfr_facebuilder
     Qt6::Widgets
     Qt6::Network
     Qt6::OpenGL
